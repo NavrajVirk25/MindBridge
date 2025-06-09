@@ -48,8 +48,8 @@ app.get('/api/resources', (req, res) => {
       id: 2,
       title: 'Crisis Hotline',
       category: 'Emergency',
-      description: '24/7 crisis support line',
-      phone: '988',
+      description: '24/7 Crisis Support Line',
+      phone: '911',
       urgency: 'high'
     },
     {
