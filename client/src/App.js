@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 
-function App() {
+// This component contains all your existing landing page functionality
+// We've extracted it from App so that App can focus on routing
+function LandingPage() {
+  // useNavigate is a hook that gives us the ability to programmatically change pages
+  // Think of it as a remote control for navigation
+  const navigate = useNavigate();
+  
+  // All your existing state variables remain exactly the same
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showLoginMessage, setShowLoginMessage] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [darkMode, setDarkMode] = useState(false);
-  // Add these new state variables after your existing ones
- const [userIntent, setUserIntent] = useState(''); // Tracks what the user clicked
- const [showWelcomeMessage, setShowWelcomeMessage] = useState(false); // For "just looking" response
- const [showFloatingMessage, setShowFloatingMessage] = useState(false); // For the timed message
+  const [userIntent, setUserIntent] = useState('');
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
+  const [showFloatingMessage, setShowFloatingMessage] = useState(false);
 
+  // Your existing useEffect for fetching resources - unchanged
   useEffect(() => {
     const fetchResources = async () => {
       try {
@@ -31,23 +39,21 @@ function App() {
 
     fetchResources();
   }, []);
-   // Add this after your existing useEffect for fetching resources
-useEffect(() => {
-  // Set a timer to show the floating message after 5 seconds
-  const timer = setTimeout(() => {
-    setShowFloatingMessage(true);
-    
-    // Hide the message after it's been visible for 4 seconds
-    setTimeout(() => {
-      setShowFloatingMessage(false);
-    }, 4000);
-  }, 5000);
-  
-  // Clean up the timer if the component unmounts
-  return () => clearTimeout(timer);
-}, []); // Empty dependency array means this runs once when component mounts
 
-  // Apply dark mode class to body
+  // Your existing useEffect for the floating message - unchanged
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowFloatingMessage(true);
+      
+      setTimeout(() => {
+        setShowFloatingMessage(false);
+      }, 4000);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Your existing useEffect for dark mode - unchanged
   useEffect(() => {
     if (darkMode) {
       document.body.classList.add('dark-mode');
@@ -56,55 +62,54 @@ useEffect(() => {
     }
   }, [darkMode]);
 
+  // MODIFIED: This function now navigates to the login page instead of showing a message
   const handleLoginClick = () => {
-    setShowLoginMessage(true);
-    setTimeout(() => setShowLoginMessage(false), 3000);
+    navigate('/login'); // This is the key change - we navigate instead of showing a message
   };
 
-  // Filter resources based on search term
+  // Your existing filter logic - unchanged
   const filteredResources = resources.filter(resource => 
     resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     resource.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     resource.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
- // Function to handle user intent selection
-const handleIntentClick = (intent) => {
-  setUserIntent(intent);
-  
-  switch(intent) {
-    case 'immediate':
-      // Smooth scroll to crisis resources
-      const crisisResource = document.querySelector('.resource-card.high');
-      if (crisisResource) {
-        crisisResource.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Add a highlight effect
-        crisisResource.style.boxShadow = '0 0 20px rgba(245, 101, 101, 0.5)';
+
+  // Your existing intent handler - unchanged
+  const handleIntentClick = (intent) => {
+    setUserIntent(intent);
+    
+    switch(intent) {
+      case 'immediate':
+        const crisisResource = document.querySelector('.resource-card.high');
+        if (crisisResource) {
+          crisisResource.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          crisisResource.style.boxShadow = '0 0 20px rgba(245, 101, 101, 0.5)';
+          setTimeout(() => {
+            crisisResource.style.boxShadow = '';
+          }, 2000);
+        }
+        break;
+        
+      case 'explore':
+        const resourcesSection = document.querySelector('.resources-section');
+        if (resourcesSection) {
+          resourcesSection.scrollIntoView({ behavior: 'smooth' });
+        }
+        break;
+        
+      case 'looking':
+        setShowWelcomeMessage(true);
         setTimeout(() => {
-          crisisResource.style.boxShadow = '';
-        }, 2000);
-      }
-      break;
-      
-    case 'explore':
-      // Smooth scroll to resources section
-      const resourcesSection = document.querySelector('.resources-section');
-      if (resourcesSection) {
-        resourcesSection.scrollIntoView({ behavior: 'smooth' });
-      }
-      break;
-      
-    case 'looking':
-      // Show welcome message
-      setShowWelcomeMessage(true);
-      setTimeout(() => {
-        setShowWelcomeMessage(false);
-      }, 4000);
-      break;
-      
-    default:
-      break;
-  }
-};
+          setShowWelcomeMessage(false);
+        }, 4000);
+        break;
+        
+      default:
+        break;
+    }
+  };
+
+  // Your entire existing return statement - completely unchanged except for removing the login message
   return (
     <div className="App">
       {/* Hero Section */}
@@ -125,7 +130,7 @@ const handleIntentClick = (intent) => {
                 className="login-btn"
                 onClick={handleLoginClick}
               >
-                Student Login
+                Login
               </button>
             </div>
           </div>
@@ -139,54 +144,61 @@ const handleIntentClick = (intent) => {
             A safe space for university students to find support, resources, and community
           </p>
           
-          {showLoginMessage && (
-            <div className="coming-soon-message">
-              <span className="sparkle">✨</span>
-              University integration coming soon! For now, explore our resources below.
+           {/* Add this new call-to-action button */}
+  <div className="hero-cta">
+    <button 
+      className="cta-button primary"
+      onClick={handleLoginClick}
+    >
+      Get Started
+    </button>
+    <p className="cta-subtext">
+      Join thousands of students taking control of their mental wellness
+    </p>
+  </div>
+          {/* Removed the login message since we now have actual navigation */}
+          
+          {/* Interactive user intent section */}
+          <div className="user-intent-section">
+            <p className="intent-prompt">What brings you to MindBridge today?</p>
+            <div className="intent-buttons">
+              <button 
+                className="intent-btn urgent"
+                onClick={() => handleIntentClick('immediate')}
+              >
+                <span className="intent-icon">🆘</span>
+                I need immediate help
+              </button>
+              <button 
+                className="intent-btn explore"
+                onClick={() => handleIntentClick('explore')}
+              >
+                <span className="intent-icon">🔍</span>
+                I want to explore resources
+              </button>
+              <button 
+                className="intent-btn browse"
+                onClick={() => handleIntentClick('looking')}
+              >
+                <span className="intent-icon">👋</span>
+                Just looking around
+              </button>
+            </div>
+            
+            {/* Welcome message for "just looking" users */}
+            {showWelcomeMessage && (
+              <div className="welcome-message">
+                <p>Welcome! Take your time exploring. We're here whenever you're ready. 💜</p>
+              </div>
+            )}
+          </div>
+
+          {/* Floating emotional support message */}
+          {showFloatingMessage && (
+            <div className="floating-message">
+              <p>Remember: It's okay to not be okay ✨</p>
             </div>
           )}
-          {/* Add this after the showLoginMessage conditional block */}
-{/* Interactive user intent section */}
-<div className="user-intent-section">
-  <p className="intent-prompt">What brings you to MindBridge today?</p>
-  <div className="intent-buttons">
-    <button 
-      className="intent-btn urgent"
-      onClick={() => handleIntentClick('immediate')}
-    >
-      <span className="intent-icon">🆘</span>
-      I need immediate help
-    </button>
-    <button 
-      className="intent-btn explore"
-      onClick={() => handleIntentClick('explore')}
-    >
-      <span className="intent-icon">🔍</span>
-      I want to explore resources
-    </button>
-    <button 
-      className="intent-btn browse"
-      onClick={() => handleIntentClick('looking')}
-    >
-      <span className="intent-icon">👋</span>
-      Just looking around
-    </button>
-  </div>
-  
-  {/* Welcome message for "just looking" users */}
-  {showWelcomeMessage && (
-    <div className="welcome-message">
-      <p>Welcome! Take your time exploring. We're here whenever you're ready. 💜</p>
-    </div>
-  )}
-</div>
-
-{/* Floating emotional support message */}
-{showFloatingMessage && (
-  <div className="floating-message">
-    <p>Remember: It's okay to not be okay ✨</p>
-  </div>
-)}
         </div>
 
         {/* Decorative elements */}
@@ -197,13 +209,13 @@ const handleIntentClick = (intent) => {
         </div>
 
         {/* Wave transition */}
-<div className="wave-container">
-  <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
-    <path d="M0,40 C150,90 350,0 600,50 C850,100 1050,10 1200,40 L1200,120 L0,120 Z"
-          className="wave-path">
-    </path>
-  </svg>
-</div>
+        <div className="wave-container">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M0,40 C150,90 350,0 600,50 C850,100 1050,10 1200,40 L1200,120 L0,120 Z"
+                  className="wave-path">
+            </path>
+          </svg>
+        </div>
       </section>
 
       {/* Features Section */}
@@ -319,6 +331,118 @@ const handleIntentClick = (intent) => {
         </div>
       </footer>
     </div>
+  );
+}
+
+// Temporary placeholder component for the login selection page
+// You'll replace this with a proper component later
+function LoginSelection() {
+  const navigate = useNavigate();
+  
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      textAlign: 'center',
+      padding: '20px'
+    }}>
+      <h1 style={{fontSize: '3rem', marginBottom: '2rem'}}>Select Your Role</h1>
+      
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '2rem',
+        maxWidth: '800px',
+        width: '100%'
+      }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          padding: '2rem',
+          borderRadius: '15px',
+          cursor: 'pointer',
+          transition: 'transform 0.3s',
+          backdropFilter: 'blur(10px)'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2>🎓 Student / Peer</h2>
+          <p>Students seeking help and trained peer supporters providing assistance</p>
+        </div>
+        
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          padding: '2rem',
+          borderRadius: '15px',
+          cursor: 'pointer',
+          transition: 'transform 0.3s',
+          backdropFilter: 'blur(10px)'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2>🩺 Counselor</h2>
+          <p>Professional counselor access</p>
+        </div>
+        
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          padding: '2rem',
+          borderRadius: '15px',
+          cursor: 'pointer',
+          transition: 'transform 0.3s',
+          backdropFilter: 'blur(10px)'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2>⚙️ Administrator</h2>
+          <p>Platform administration</p>
+        </div>
+      </div>
+      
+      <button 
+        onClick={() => navigate('/')}
+        style={{
+          marginTop: '3rem',
+          padding: '10px 20px',
+          background: 'transparent',
+          border: '2px solid white',
+          color: 'white',
+          borderRadius: '25px',
+          cursor: 'pointer',
+          fontSize: '1rem'
+        }}
+      >
+        ← Back to Home
+      </button>
+    </div>
+  );
+}
+
+// The App component now serves as the routing controller
+// It decides which component to show based on the current URL
+function App() {
+  return (
+    <Router>
+      <Routes>
+        {/* When users visit the root URL ("/"), show the LandingPage */}
+        <Route path="/" element={<LandingPage />} />
+        
+        {/* When users visit "/login", show the LoginSelection page */}
+        <Route path="/login" element={<LoginSelection />} />
+        
+        {/* Future routes will go here for individual login pages */}
+        {/* <Route path="/login/student" element={<StudentLogin />} /> */}
+        {/* <Route path="/login/counselor" element={<CounselorLogin />} /> */}
+        {/* <Route path="/login/admin" element={<AdminLogin />} /> */}
+      </Routes>
+    </Router>
   );
 }
 
