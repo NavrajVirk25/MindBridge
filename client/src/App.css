@@ -1325,3 +1325,485 @@ body,
     height: 100px;
   }
 }
+/* ============================================
+   Unified Login Interface Styles
+   ============================================ */
+
+/* Enhanced unified login page with signature MindBridge atmosphere */
+.unified-login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Restore the floating cloud atmosphere from your original design */
+.unified-login-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+  animation: float-clouds 30s ease-in-out infinite;
+  z-index: 1;
+}
+
+/* Bring back the signature floating decorative circles */
+.unified-login-page::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-image:
+    radial-gradient(circle 300px at 10% 20%, rgba(255, 255, 255, 0.1), transparent),
+    radial-gradient(circle 200px at 90% 80%, rgba(255, 255, 255, 0.08), transparent),
+    radial-gradient(circle 150px at 70% 30%, rgba(255, 255, 255, 0.06), transparent);
+  animation: gentle-float 40s linear infinite;
+  z-index: 2;
+}
+
+/* The floating clouds animation that creates dynamic atmosphere */
+@keyframes float-clouds {
+  0%, 100% { 
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
+  }
+  33% { 
+    transform: translate(-20px, -20px) scale(1.1);
+    opacity: 0.6;
+  }
+  66% { 
+    transform: translate(20px, -10px) scale(0.95);
+    opacity: 0.9;
+  }
+}
+
+/* Gentle floating animation for the decorative circles */
+@keyframes gentle-float {
+  0% { transform: rotate(0deg) translate(0, 0); }
+  25% { transform: rotate(90deg) translate(10px, -10px); }
+  50% { transform: rotate(180deg) translate(-5px, 5px); }
+  75% { transform: rotate(270deg) translate(5px, -15px); }
+  100% { transform: rotate(360deg) translate(0, 0); }
+}
+
+@keyframes subtle-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-10px, -10px) scale(1.02); }
+}
+
+/* Main login container with contemporary card design */
+.unified-login-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 
+    0 25px 70px rgba(0, 0, 0, 0.15),
+    0 10px 35px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 10;
+  animation: login-appear 0.8s ease-out;
+  /* Add a subtle glow effect that harmonizes with the background */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+/* This animation creates a welcoming entry experience */
+@keyframes login-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Professional header styling that builds trust */
+.unified-login-container .login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.unified-login-container .login-title {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.unified-login-container .login-subtitle {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  color: #718096;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Form styling that emphasizes clarity and accessibility */
+.unified-login-form {
+  margin-bottom: 24px;
+}
+
+.unified-login-form .form-group {
+  margin-bottom: 20px;
+}
+
+.unified-login-form .form-group label {
+  display: block;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+/* Input styling that provides clear interaction feedback */
+.unified-login-form input,
+.unified-login-form select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: 'Quicksand', sans-serif;
+  transition: all 0.2s ease;
+  background: white;
+  color: #374151;
+}
+
+/* Focus states that guide user attention without being overwhelming */
+.unified-login-form input:focus,
+.unified-login-form select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  transform: translateY(-1px);
+}
+
+/* The identifier input gets special treatment since it's the key interaction */
+.identifier-input {
+  font-weight: 500;
+}
+
+/* User type indicator that provides helpful feedback */
+.user-type-indicator {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #059669;
+  font-weight: 500;
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(-5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Checkbox styling that maintains consistency with the overall design */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  transform: scale(1.1);
+}
+
+.checkbox-group label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+/* Submit button with professional styling and interaction feedback */
+.login-submit-btn {
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+}
+
+.login-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Error message styling that's noticeable but not alarming */
+.unified-login-container .error-message {
+  background: linear-gradient(135deg, #fef2f2 0%, #fde8e8 100%);
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  animation: error-appear 0.3s ease-out;
+}
+
+.unified-login-container .error-message p {
+  color: #dc2626;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.9rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+@keyframes error-appear {
+  0% { opacity: 0; transform: translateX(-10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Emergency access styling for student users */
+.emergency-access {
+  background: linear-gradient(135deg, #fef3e2 0%, #fde8cc 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.emergency-access p {
+  color: #92400e;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 500;
+  margin: 0 0 12px 0;
+  font-size: 0.9rem;
+}
+
+.emergency-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.emergency-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Footer styling that provides helpful options without clutter */
+.unified-login-container .login-footer {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 20px;
+  text-align: center;
+}
+
+.login-links {
+  margin-bottom: 16px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+
+.link-button:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+.separator {
+  margin: 0 12px;
+  color: #d1d5db;
+}
+
+/* Advanced options that appear progressively */
+.advanced-options {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  animation: slide-down 0.3s ease-out;
+}
+
+@keyframes slide-down {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Back navigation that's accessible but not dominant */
+.back-navigation {
+  margin-top: 16px;
+}
+
+.back-btn {
+  background: transparent;
+  border: 2px solid #e5e7eb;
+  color: #6b7280;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateX(-3px);
+}
+
+/* Field help text that provides guidance without overwhelming */
+.field-help {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-family: 'Quicksand', sans-serif;
+}
+
+/* Dark mode adaptations for the unified login */
+body.dark-mode .unified-login-container {
+  background: rgba(45, 55, 72, 0.95);
+  box-shadow: 
+    0 25px 70px rgba(0, 0, 0, 0.4),
+    0 10px 35px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+
+body.dark-mode .unified-login-container .login-title {
+  color: #f7fafc;
+}
+
+body.dark-mode .unified-login-container .login-subtitle {
+  color: #cbd5e0;
+}
+
+body.dark-mode .unified-login-form label {
+  color: #e2e8f0;
+}
+
+body.dark-mode .unified-login-form input,
+body.dark-mode .unified-login-form select {
+  background: #4a5568;
+  border-color: #718096;
+  color: #f7fafc;
+}
+
+body.dark-mode .unified-login-form input:focus,
+body.dark-mode .unified-login-form select:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+/* Responsive design that works on all devices */
+@media (max-width: 480px) {
+  .unified-login-container {
+    padding: 32px 24px;
+    margin: 16px;
+    border-radius: 20px;
+  }
+  
+  .unified-login-container .login-title {
+    font-size: 1.8rem;
+  }
+  
+  .advanced-options {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+/* Enhanced dark mode with signature MindBridge night sky atmosphere */
+body.dark-mode .unified-login-page {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
+}
+
+/* Restore the twinkling stars effect for dark mode */
+body.dark-mode .unified-login-page::before {
+  background-image: 
+    radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(2px 2px at 90% 60%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 30% 90%, rgba(255, 255, 255, 0.8), transparent);
+  background-size: 300px 300px, 250px 250px, 200px 200px, 180px 180px, 220px 220px, 160px 160px;
+  background-position: 0 0, 40px 60px, 130px 270px, 70px 100px, 200px 200px, 300px 50px;
+  animation: twinkle-stars 15s linear infinite;
+  opacity: 0.7;
+}
+
+/* Enhanced aurora effect for dark mode login */
+body.dark-mode .unified-login-page::after {
+  background: radial-gradient(ellipse at center, 
+    rgba(120, 119, 198, 0.15) 0%, 
+    rgba(255, 119, 198, 0.08) 25%, 
+    rgba(120, 219, 255, 0.08) 50%, 
+    transparent 70%);
+  animation: aurora-dance 25s linear infinite;
+  transform-origin: center center;
+}
+
+/* Twinkling animation for stars in dark mode */
+@keyframes twinkle-stars {
+  0% { opacity: 0.7; transform: scale(1); }
+  25% { opacity: 0.4; transform: scale(1.1); }
+  50% { opacity: 0.8; transform: scale(0.9); }
+  75% { opacity: 0.5; transform: scale(1.05); }
+  100% { opacity: 0.7; transform: scale(1); }
+}
+
+/* Aurora dancing animation for dark mode */
+@keyframes aurora-dance {
+  0% { transform: rotate(0deg) scale(1); opacity: 0.15; }
+  25% { transform: rotate(90deg) scale(1.1); opacity: 0.1; }
+  50% { transform: rotate(180deg) scale(1.2); opacity: 0.18; }
+  75% { transform: rotate(270deg) scale(0.9); opacity: 0.12; }
+  100% { transform: rotate(360deg) scale(1); opacity: 0.15; }
+}

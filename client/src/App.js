@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 
+import UnifiedLogin from './components/UnifiedLogin';
+
 // This component contains all your existing landing page functionality
 // We've extracted it from App so that App can focus on routing
 function LandingPage() {
@@ -13,12 +15,10 @@ function LandingPage() {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showLoginMessage, setShowLoginMessage] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [userIntent, setUserIntent] = useState('');
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
-  const [showFloatingMessage, setShowFloatingMessage] = useState(false);
 
   // Your existing useEffect for fetching resources - unchanged
   useEffect(() => {
@@ -40,18 +40,6 @@ function LandingPage() {
     fetchResources();
   }, []);
 
-  // Your existing useEffect for the floating message - unchanged
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowFloatingMessage(true);
-      
-      setTimeout(() => {
-        setShowFloatingMessage(false);
-      }, 4000);
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, []);
 
   // Your existing useEffect for dark mode - unchanged
   useEffect(() => {
@@ -192,13 +180,6 @@ function LandingPage() {
               </div>
             )}
           </div>
-
-          {/* Floating emotional support message */}
-          {showFloatingMessage && (
-            <div className="floating-message">
-              <p>Remember: It's okay to not be okay ✨</p>
-            </div>
-          )}
         </div>
 
         {/* Decorative elements */}
@@ -334,97 +315,6 @@ function LandingPage() {
   );
 }
 
-// Temporary placeholder component for the login selection page
-// You'll replace this with a proper component later
-function LoginSelection() {
-  const navigate = useNavigate();
-  
-  return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-      textAlign: 'center',
-      padding: '20px'
-    }}>
-      <h1 style={{fontSize: '3rem', marginBottom: '2rem'}}>Select Your Role</h1>
-      
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '2rem',
-        maxWidth: '800px',
-        width: '100%'
-      }}>
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          padding: '2rem',
-          borderRadius: '15px',
-          cursor: 'pointer',
-          transition: 'transform 0.3s',
-          backdropFilter: 'blur(10px)'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <h2>🎓 Student / Peer</h2>
-          <p>Students seeking help and trained peer supporters providing assistance</p>
-        </div>
-        
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          padding: '2rem',
-          borderRadius: '15px',
-          cursor: 'pointer',
-          transition: 'transform 0.3s',
-          backdropFilter: 'blur(10px)'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <h2>🩺 Counselor</h2>
-          <p>Professional counselor access</p>
-        </div>
-        
-        <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
-          padding: '2rem',
-          borderRadius: '15px',
-          cursor: 'pointer',
-          transition: 'transform 0.3s',
-          backdropFilter: 'blur(10px)'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-        onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-        >
-          <h2>⚙️ Administrator</h2>
-          <p>Platform administration</p>
-        </div>
-      </div>
-      
-      <button 
-        onClick={() => navigate('/')}
-        style={{
-          marginTop: '3rem',
-          padding: '10px 20px',
-          background: 'transparent',
-          border: '2px solid white',
-          color: 'white',
-          borderRadius: '25px',
-          cursor: 'pointer',
-          fontSize: '1rem'
-        }}
-      >
-        ← Back to Home
-      </button>
-    </div>
-  );
-}
-
 // The App component now serves as the routing controller
 // It decides which component to show based on the current URL
 function App() {
@@ -434,13 +324,7 @@ function App() {
         {/* When users visit the root URL ("/"), show the LandingPage */}
         <Route path="/" element={<LandingPage />} />
         
-        {/* When users visit "/login", show the LoginSelection page */}
-        <Route path="/login" element={<LoginSelection />} />
-        
-        {/* Future routes will go here for individual login pages */}
-        {/* <Route path="/login/student" element={<StudentLogin />} /> */}
-        {/* <Route path="/login/counselor" element={<CounselorLogin />} /> */}
-        {/* <Route path="/login/admin" element={<AdminLogin />} /> */}
+        <Route path="/login" element={<UnifiedLogin />} />
       </Routes>
     </Router>
   );
