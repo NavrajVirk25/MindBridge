@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 // to different user types based on their credentials and input patterns.
 function UnifiedLogin() {
   const navigate = useNavigate();
-  
+
   // Core authentication state that works for all user types
   const [formData, setFormData] = useState({
     identifier: '',        // Can be email, employee ID, or admin ID
@@ -18,32 +18,32 @@ function UnifiedLogin() {
   const [additionalFields, setAdditionalFields] = useState({}); // Type-specific fields
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  
+
   // Advanced state for multi-step authentication (when needed for admins)
   const [authStep, setAuthStep] = useState(1);
 
   // Institutionally-aware user type detection
   const detectUserType = (identifier) => {
     if (!identifier) return null;
-    
+
     // KPU-specific student detection (including peer supporters)
     if (identifier.includes('@student.kpu.ca')) {
       return 'student';
     }
-    
+
     // KPU employee detection - automatically set as counselor
-    if (identifier.includes('@employee.kpu.ca') || 
+    if (identifier.includes('@employee.kpu.ca') ||
         (identifier.includes('@kpu.ca') && !identifier.includes('@student.'))) {
       return 'counselor';
     }
-    
+
     // Administrative access patterns
-    if (identifier.toLowerCase().includes('admin') || 
+    if (identifier.toLowerCase().includes('admin') ||
         identifier.match(/^admin-\w+@kpu\.ca$/) ||
         identifier.includes('@admin.kpu.ca')) {
       return 'admin';
     }
-    
+
     // Default to student for other patterns
     return 'student';
   };
@@ -60,7 +60,7 @@ function UnifiedLogin() {
   useEffect(() => {
     const detectedType = detectUserType(formData.identifier);
     setUserType(detectedType);
-    
+
     // Clear error when user changes input
     if (errorMessage) {
       setErrorMessage('');
@@ -70,7 +70,7 @@ function UnifiedLogin() {
   // Handle all form input changes
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (name in formData) {
       setFormData(prev => ({
         ...prev,
@@ -87,19 +87,19 @@ function UnifiedLogin() {
   // Main authentication handler
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!formData.identifier || !formData.password) {
       setErrorMessage('Please enter both your identifier and password.');
       return;
     }
-    
+
     // Type-specific validation
     if (userType === 'counselor' && !additionalFields.department) {
       setErrorMessage('Department selection is required for professional access.');
       return;
     }
-    
+
     // Handle multi-step authentication for administrators
     if (userType === 'admin') {
       if (authStep === 1) {
@@ -107,7 +107,7 @@ function UnifiedLogin() {
           setErrorMessage('Institution code is required for administrative access.');
           return;
         }
-        
+
         setIsLoading(true);
         setTimeout(() => {
           setIsLoading(false);
@@ -122,33 +122,56 @@ function UnifiedLogin() {
         }
       }
     }
-    
+
     setIsLoading(true);
-    
-    // Navigate directly to dashboard after loading
-    setTimeout(() => {
+
+    try {
+      // Make API call to your backend
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.identifier,
+          password: formData.password
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Store user data in localStorage (for session management)
+        localStorage.setItem('mindbridge_user', JSON.stringify(result.user));
+        
+        // Navigate to appropriate dashboard
+        const isPeer = isPeerSupporter(formData.identifier);
+        const dashboardPath = `/dashboard/${result.user.userType}${isPeer ? '?peer=true' : ''}`;
+        
+        navigate(dashboardPath);
+      } else {
+        setErrorMessage(result.error || 'Login failed. Please check your credentials.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage('Unable to connect to server. Please try again later.');
+    } finally {
       setIsLoading(false);
-      
-      // Pass peer supporter status to dashboard
-      const isPeer = isPeerSupporter(formData.identifier);
-      const dashboardPath = `/dashboard/${userType}${isPeer ? '?peer=true' : ''}`;
-      
-      navigate(dashboardPath);
-    }, 2000);
+    }
   };
 
   return (
     <div className="unified-login-page">
       <div className="unified-login-container">
-        
+
         {/* Header with back navigation integrated */}
         <div className="login-header">
-          <button 
+          <button
             className="back-btn"
             onClick={() => navigate('/')}
-            style={{ 
-              position: 'absolute', 
-              top: '16px', 
+            style={{
+              position: 'absolute',
+              top: '16px',
               left: '16px',
               fontSize: '14px',
               padding: '6px 12px'
@@ -156,7 +179,7 @@ function UnifiedLogin() {
           >
             ← Home
           </button>
-          
+
           <h1 className="login-title">Welcome to MindBridge</h1>
           <p className="login-subtitle">
             Sign in to access your personalized mental health support platform
@@ -172,12 +195,12 @@ function UnifiedLogin() {
 
         {/* Main login form */}
         <form className="unified-login-form" onSubmit={handleLogin}>
-          
+
           {/* User type indicator */}
           {userType && (
             <div className={`user-type-indicator ${userType}`}>
               {userType === 'student' && '🎓 Student Access'}
-              {userType === 'counselor' && '🧠 Professional Access'}  
+              {userType === 'counselor' && '🧠 Professional Access'}
               {userType === 'admin' && '⚙️ Administrative Access'}
             </div>
           )}
@@ -295,19 +318,19 @@ function UnifiedLogin() {
           )}
 
           {/* Dynamic submit button */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="login-submit-btn"
             disabled={isLoading}
           >
-            {isLoading ? 'Authenticating...' : 
-             authStep === 2 ? 'Verify & Sign In' : 
+            {isLoading ? 'Authenticating...' :
+             authStep === 2 ? 'Verify & Sign In' :
              'Sign In'}
           </button>
 
           {/* Help links */}
           <div className="login-links">
-            <button 
+            <button
               type="button"
               className="link-button"
               onClick={() => alert('Password reset functionality will be implemented in INFO 4290!')}
@@ -315,7 +338,7 @@ function UnifiedLogin() {
               Forgot password?
             </button>
             <span className="separator">•</span>
-            <button 
+            <button
               type="button"
               className="link-button"
               onClick={() => alert('24/7 Support: Call 1-800-HELP or email support@mindbridge.ca')}
@@ -328,7 +351,7 @@ function UnifiedLogin() {
         {/* Footer with additional help */}
         <div className="login-footer">
           <div className="login-links">
-            <button 
+            <button
               type="button"
               className="link-button"
               onClick={() => alert('Crisis Support: If you are in immediate danger, call 911 or go to your nearest emergency room.')}
@@ -336,7 +359,7 @@ function UnifiedLogin() {
               Crisis Support
             </button>
             <span className="separator">•</span>
-            <button 
+            <button
               type="button"
               className="link-button"
               onClick={() => alert('Technical Support: IT Help Desk - ext. 4357')}

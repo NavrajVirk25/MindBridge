@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-
 function StudentDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,12 +29,19 @@ function StudentDashboard() {
   const [supportRequests, setSupportRequests] = useState([]);
   const [peerSchedule, setPeerSchedule] = useState([]);
 
-  // Load dashboard data
-  
-  useEffect(() => {
-  loadDashboardData();
-}, [isPeerSupporter]);
+  // Helper function to convert mood level (1-5) to text
+  const convertMoodLevelToText = (level) => {
+    const moodMap = {
+      5: 'excellent',
+      4: 'good', 
+      3: 'okay',
+      2: 'low',
+      1: 'difficult'
+    };
+    return moodMap[level] || 'okay';
+  };
 
+  // Load dashboard data with real API integration
   const loadDashboardData = useCallback(async () => {
     // Load resources from backend
     try {
@@ -48,34 +54,68 @@ function StudentDashboard() {
       console.error('Error loading resources:', error);
     }
 
-    // Mock appointments data
-    setAppointments([
-      {
-        id: 1,
-        date: '2025-07-03',
-        time: '2:00 PM',
-        type: 'Counseling Session',
-        counselor: 'Dr. Sarah Mitchell',
-        status: 'confirmed'
-      },
-      {
-        id: 2,
-        date: '2025-07-08',
-        time: '10:30 AM',
-        type: 'Peer Support Group',
-        facilitator: 'Emma Chen',
-        status: 'pending'
+    // Load real user data from localStorage (from login)
+    const userData = JSON.parse(localStorage.getItem('mindbridge_user') || '{}');
+    const userId = userData.id || 1; // Fallback to user ID 1
+
+    // Load real mood entries from API
+    try {
+      const moodResponse = await fetch(`http://localhost:5000/api/mood/${userId}`);
+      if (moodResponse.ok) {
+        const moodData = await moodResponse.json();
+        // Convert API mood data to display format
+        const formattedMoodEntries = moodData.data.map(entry => ({
+          date: entry.created_at.split('T')[0], // Extract date from timestamp
+          mood: convertMoodLevelToText(entry.mood_level), // Convert 1-5 to text
+          note: entry.notes || 'No notes'
+        }));
+        setMoodEntries(formattedMoodEntries);
       }
-    ]);
+    } catch (error) {
+      console.error('Error loading mood data:', error);
+      // Keep mock data as fallback
+      setMoodEntries([
+        { date: '2025-07-01', mood: 'good', note: 'Had a great study session' },
+        { date: '2025-06-30', mood: 'okay', note: 'Feeling a bit stressed about exams' }
+      ]);
+    }
 
-    // Mock mood entries
-    setMoodEntries([
-      { date: '2025-07-01', mood: 'good', note: 'Had a great study session' },
-      { date: '2025-06-30', mood: 'okay', note: 'Feeling a bit stressed about exams' },
-      { date: '2025-06-29', mood: 'excellent', note: 'Completed my project!' }
-    ]);
+    // Load real appointments from API
+    try {
+      const appointmentsResponse = await fetch(`http://localhost:5000/api/appointments/${userId}`);
+      if (appointmentsResponse.ok) {
+        const appointmentsData = await appointmentsResponse.json();
+        // Convert API appointment data to display format
+        const formattedAppointments = appointmentsData.data.map(appointment => ({
+          id: appointment.id,
+          date: appointment.appointment_date.split('T')[0], // Extract date
+          time: new Date(appointment.appointment_date).toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          }),
+          type: 'Counseling Session',
+          counselor: `${appointment.counselor_first_name} ${appointment.counselor_last_name}`,
+          status: appointment.status
+        }));
+        setAppointments(formattedAppointments);
+      }
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+      // Keep mock data as fallback
+      setAppointments([
+        {
+          id: 1,
+          date: '2025-07-03',
+          time: '2:00 PM',
+          type: 'Counseling Session',
+          counselor: 'Dr. Sarah Mitchell',
+          status: 'confirmed'
+        }
+      ]);
+    }
 
-    // Load peer supporter specific data
+    // Load peer supporter specific data (keep as mock for now)
     if (isPeerSupporter) {
       // Mock peer sessions
       setPeerSessions([
@@ -128,17 +168,52 @@ function StudentDashboard() {
     }
   }, [isPeerSupporter]);
 
-  const handleMoodSubmit = () => {
+  // Load data when component mounts
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Handle mood submission with real API
+  const handleMoodSubmit = async () => {
     if (currentMood) {
-      const newEntry = {
-        date: new Date().toISOString().split('T')[0],
-        mood: currentMood,
-        note: ''
+      const userData = JSON.parse(localStorage.getItem('mindbridge_user') || '{}');
+      const userId = userData.id || 1;
+      
+      // Convert mood text to number for API
+      const moodLevelMap = {
+        'excellent': 5,
+        'good': 4,
+        'okay': 3,
+        'low': 2,
+        'difficult': 1
       };
-      setMoodEntries([newEntry, ...moodEntries.slice(0, 6)]);
-      setCurrentMood('');
-      setShowMoodTracker(false);
-      alert('Mood logged successfully! 🌟');
+      
+      try {
+        const response = await fetch('http://localhost:5000/api/mood', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: userId,
+            moodLevel: moodLevelMap[currentMood],
+            notes: `Mood logged via dashboard`
+          })
+        });
+        
+        if (response.ok) {
+          // Refresh mood data after successful submission
+          loadDashboardData();
+          setCurrentMood('');
+          setShowMoodTracker(false);
+          alert('Mood logged successfully! 🌟');
+        } else {
+          alert('Failed to log mood. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error logging mood:', error);
+        alert('Error logging mood. Please try again.');
+      }
     }
   };
 
@@ -154,6 +229,7 @@ function StudentDashboard() {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('mindbridge_user');
     navigate('/');
   };
 
@@ -282,7 +358,7 @@ function StudentDashboard() {
                           <span className="appointment-type">{appointment.type}</span>
                           <span className="appointment-time">{appointment.date} at {appointment.time}</span>
                           <span className="appointment-with">
-                            with {appointment.counselor || appointment.facilitator}
+                            with {appointment.counselor}
                           </span>
                         </div>
                         <span className={`appointment-status ${appointment.status}`}>
@@ -308,10 +384,10 @@ function StudentDashboard() {
                 <div className="resource-list">
                   {resources.map(resource => (
                     <div key={resource.id} className="resource-item">
-                      <span className={`resource-priority ${resource.urgency}`}>
-                        {resource.urgency === 'high' && '🚨'}
-                        {resource.urgency === 'medium' && '⚡'}
-                        {resource.urgency === 'low' && '💡'}
+                      <span className={`resource-priority ${resource.urgency_level}`}>
+                        {resource.urgency_level === 'high' && '🚨'}
+                        {resource.urgency_level === 'medium' && '⚡'}
+                        {resource.urgency_level === 'low' && '💡'}
                       </span>
                       <div className="resource-details">
                         <span className="resource-title">{resource.title}</span>
@@ -337,13 +413,13 @@ function StudentDashboard() {
             <h2>Mental Health Resources</h2>
             <div className="resources-grid">
               {resources.map(resource => (
-                <div key={resource.id} className={`resource-card ${resource.urgency}`}>
+                <div key={resource.id} className={`resource-card ${resource.urgency_level}`}>
                   <div className="resource-header">
                     <h4>{resource.title}</h4>
-                    <span className={`urgency-badge ${resource.urgency}`}>
-                      {resource.urgency === 'high' && '🚨 Immediate'}
-                      {resource.urgency === 'medium' && '⚡ Soon'}
-                      {resource.urgency === 'low' && '💡 When Ready'}
+                    <span className={`urgency-badge ${resource.urgency_level}`}>
+                      {resource.urgency_level === 'high' && '🚨 Immediate'}
+                      {resource.urgency_level === 'medium' && '⚡ Soon'}
+                      {resource.urgency_level === 'low' && '💡 When Ready'}
                     </span>
                   </div>
                   <div className="resource-category">{resource.category}</div>
@@ -409,7 +485,7 @@ function StudentDashboard() {
                       📅 {appointment.date} at {appointment.time}
                     </p>
                     <p className="appointment-provider">
-                      👤 {appointment.counselor || appointment.facilitator}
+                      👤 {appointment.counselor}
                     </p>
                   </div>
                   <div className="appointment-actions">

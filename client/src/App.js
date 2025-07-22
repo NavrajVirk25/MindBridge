@@ -306,8 +306,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<UnifiedLogin />} />
         <Route path="/dashboard/student" element={<StudentDashboard />} />
-         {<Route path="/dashboard/counselor" element={<CounselorDashboard />} /> }
-        { <Route path="/dashboard/admin" element={<AdminDashboard />} /> }
+<Route path="/dashboard/counselor" element={<CounselorDashboard />} />
+<Route path="/dashboard/admin" element={<AdminDashboard />} />
       </Routes>
     </Router>
   );
