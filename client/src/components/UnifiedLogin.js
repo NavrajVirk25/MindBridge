@@ -145,8 +145,15 @@ function UnifiedLogin() {
         localStorage.setItem('mindbridge_user', JSON.stringify(result.user));
         
         // Navigate to appropriate dashboard
-        const isPeer = isPeerSupporter(formData.identifier);
-        const dashboardPath = `/dashboard/${result.user.userType}${isPeer ? '?peer=true' : ''}`;
+       const isPeer = isPeerSupporter(formData.identifier);
+
+// Fix routing: peer supporters should use student dashboard with peer parameter
+let dashboardType = result.user.userType;
+if (dashboardType === 'peer_supporter') {
+  dashboardType = 'student';
+}
+
+const dashboardPath = `/dashboard/${dashboardType}${isPeer ? '?peer=true' : ''}`;
         
         navigate(dashboardPath);
       } else {

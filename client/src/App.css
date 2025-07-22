@@ -3797,3 +3797,447 @@ body.dark-mode .peer-stats .stat-item {
 body.dark-mode .peer-stats .stat-number {
   color: #68d391;
 }
+/* ============================================
+   APPOINTMENT CALENDAR MODAL STYLES
+   ============================================ */
+
+/* Calendar Container */
+.calendar-container {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.appointment-calendar {
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  font-family: 'Quicksand', sans-serif !important;
+}
+
+.appointment-calendar .react-calendar__tile {
+  border: none !important;
+  padding: 12px !important;
+  font-family: 'Quicksand', sans-serif !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.appointment-calendar .react-calendar__tile:hover {
+  background: #667eea !important;
+  color: white !important;
+  border-radius: 8px !important;
+}
+
+.appointment-calendar .react-calendar__tile--active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border-radius: 8px !important;
+}
+
+.appointment-calendar .react-calendar__tile--now {
+  background: #f0f9ff !important;
+  color: #1e40af !important;
+  border-radius: 8px !important;
+}
+
+.appointment-calendar .react-calendar__navigation button {
+  font-family: 'Quicksand', sans-serif !important;
+  font-weight: 600 !important;
+  color: #667eea !important;
+  border: none !important;
+}
+
+.appointment-calendar .react-calendar__navigation button:hover {
+  background: #f0f9ff !important;
+  border-radius: 8px !important;
+}
+
+/* Form Sections */
+.appointment-form {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.form-section {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: block;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.selected-date {
+  text-align: center;
+  color: #667eea;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 500;
+  margin: 12px 0 0 0;
+  padding: 8px;
+  background: #f0f9ff;
+  border-radius: 8px;
+}
+
+/* Time Slots */
+.time-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.time-slot {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #4a5568;
+}
+
+.time-slot:hover {
+  border-color: #667eea;
+  background: #f0f9ff;
+  color: #667eea;
+}
+
+.time-slot.selected {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Counselor Select */
+.counselor-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  background: white;
+  color: #2d3748;
+  transition: border-color 0.2s ease;
+}
+
+.counselor-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Appointment Notes */
+.appointment-notes {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  background: white;
+  color: #2d3748;
+  transition: border-color 0.2s ease;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.appointment-notes:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.appointment-notes::placeholder {
+  color: #a0aec0;
+}
+
+/* Enhanced Modal for Appointment Booking */
+.modal-content {
+  max-width: 600px;
+  width: 95%;
+}
+
+/* Dark Mode Support for Calendar */
+body.dark-mode .appointment-calendar {
+  background: #2d3748 !important;
+  color: #e2e8f0 !important;
+}
+
+body.dark-mode .appointment-calendar .react-calendar__tile {
+  color: #e2e8f0 !important;
+}
+
+body.dark-mode .appointment-calendar .react-calendar__tile:hover {
+  background: #a78bfa !important;
+}
+
+body.dark-mode .appointment-calendar .react-calendar__tile--active {
+  background: linear-gradient(135deg, #a78bfa 0%, #9f7aea 100%) !important;
+}
+
+body.dark-mode .appointment-calendar .react-calendar__tile--now {
+  background: #553c9a !important;
+  color: #e9d5ff !important;
+}
+
+body.dark-mode .form-label {
+  color: #e2e8f0;
+}
+
+body.dark-mode .selected-date {
+  background: #553c9a;
+  color: #e9d5ff;
+}
+
+body.dark-mode .time-slot {
+  background: #4a5568;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+}
+
+body.dark-mode .time-slot:hover {
+  border-color: #a78bfa;
+  background: rgba(167, 139, 250, 0.2);
+  color: #a78bfa;
+}
+
+body.dark-mode .time-slot.selected {
+  background: linear-gradient(135deg, #a78bfa 0%, #9f7aea 100%);
+  border-color: #a78bfa;
+}
+
+body.dark-mode .counselor-select,
+body.dark-mode .appointment-notes {
+  background: #4a5568;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+}
+
+body.dark-mode .counselor-select:focus,
+body.dark-mode .appointment-notes:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
+}
+
+/* Responsive Design for Calendar */
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 95%;
+    margin: 10px;
+    max-height: 90vh;
+  }
+  
+  .appointment-calendar {
+    width: 100% !important;
+  }
+  
+  .time-slots {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+/* ============================================
+   BEAUTIFUL CONFIRMATION MODAL STYLES
+   ============================================ */
+
+.confirmation-modal {
+  max-width: 500px;
+  text-align: center;
+  animation: confirmationSlideUp 0.4s ease-out;
+}
+
+.confirmation-header {
+  margin-bottom: 30px;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+  animation: successPulse 0.6s ease-out;
+}
+
+.checkmark {
+  color: white;
+  font-size: 2.5rem;
+  font-weight: bold;
+  animation: checkmarkPop 0.5s ease-out 0.2s both;
+}
+
+.confirmation-header h3 {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1.8rem;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+}
+
+.confirmation-subtitle {
+  color: #718096;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Appointment Summary */
+.appointment-summary {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px 0;
+  border-left: 4px solid #48bb78;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.summary-item:last-child {
+  margin-bottom: 0;
+}
+
+.summary-icon {
+  font-size: 1.5rem;
+  width: 40px;
+  text-align: center;
+}
+
+.summary-details {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  flex: 1;
+}
+
+.summary-label {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.summary-value {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+/* Next Steps */
+.next-steps {
+  margin: 24px 0;
+  text-align: left;
+}
+
+.next-steps h4 {
+  font-family: 'Quicksand', sans-serif;
+  color: #2d3748;
+  margin: 0 0 12px 0;
+  font-size: 1.1rem;
+}
+
+.next-steps ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.next-steps li {
+  font-family: 'Quicksand', sans-serif;
+  color: #4a5568;
+  margin-bottom: 8px;
+  padding-left: 8px;
+}
+
+/* Confirmation Actions */
+.confirmation-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+/* Animations */
+@keyframes confirmationSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes checkmarkPop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dark Mode Support */
+body.dark-mode .confirmation-modal {
+  background: #2d3748;
+}
+
+body.dark-mode .confirmation-header h3 {
+  color: #e2e8f0;
+}
+
+body.dark-mode .confirmation-subtitle {
+  color: #cbd5e0;
+}
+
+body.dark-mode .appointment-summary {
+  background: #4a5568;
+  border-left-color: #68d391;
+}
+
+body.dark-mode .summary-label {
+  color: #cbd5e0;
+}
+
+body.dark-mode .summary-value {
+  color: #e2e8f0;
+}
+
+body.dark-mode .next-steps h4 {
+  color: #e2e8f0;
+}
+
+body.dark-mode .next-steps li {
+  color: #cbd5e0;
+}

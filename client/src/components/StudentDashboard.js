@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -28,6 +30,15 @@ function StudentDashboard() {
   const [peerSessions, setPeerSessions] = useState([]);
   const [supportRequests, setSupportRequests] = useState([]);
   const [peerSchedule, setPeerSchedule] = useState([]);
+
+   // Appointment modal state variables
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedCounselor, setSelectedCounselor] = useState('');
+  const [appointmentNotes, setAppointmentNotes] = useState('');
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [confirmedAppointment, setConfirmedAppointment] = useState(null);
 
   // Helper function to convert mood level (1-5) to text
   const convertMoodLevelToText = (level) => {
@@ -471,7 +482,10 @@ function StudentDashboard() {
           <div className="appointments-content">
             <div className="appointments-header">
               <h2>Appointments</h2>
-              <button className="book-appointment-btn">
+              <button 
+                className="book-appointment-btn"
+                onClick={() => setShowAppointmentModal(true)}
+              >
                 + Book New Appointment
               </button>
             </div>
@@ -704,6 +718,290 @@ function StudentDashboard() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Appointment Booking Modal - WITH CORRECT API INTEGRATION */}
+      {showAppointmentModal && (
+        <div className="modal-overlay" onClick={() => setShowAppointmentModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📅 Book New Appointment</h3>
+              <button 
+                className="close-btn"
+                onClick={() => setShowAppointmentModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="appointment-form">
+              {/* Interactive Calendar */}
+              <div className="form-section">
+                <label className="form-label">📅 Select Date</label>
+                <div className="calendar-container">
+                  <Calendar
+                    onChange={setSelectedDate}
+                    value={selectedDate}
+                    minDate={new Date()}
+                    tileDisabled={({ date }) => {
+                      const day = date.getDay();
+                      return day === 0 || day === 6; // Disable weekends
+                    }}
+                    className="appointment-calendar"
+                  />
+                </div>
+                <p className="selected-date">
+                  Selected: {selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              </div>
+
+              {/* Time Selection */}
+              <div className="form-section">
+                <label className="form-label">🕐 Select Time</label>
+                <div className="time-slots">
+                  {[
+                    '9:00 AM', '10:00 AM', '11:00 AM', 
+                    '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM'
+                  ].map(time => (
+                    <button
+                      key={time}
+                      type="button"
+                      className={`time-slot ${selectedTime === time ? 'selected' : ''}`}
+                      onClick={() => setSelectedTime(time)}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Counselor Selection */}
+              <div className="form-section">
+                <label className="form-label">👤 Choose Counselor</label>
+                <select 
+                  value={selectedCounselor} 
+                  onChange={(e) => setSelectedCounselor(e.target.value)}
+                  className="counselor-select"
+                >
+                  <option value="">Select a counselor</option>
+                  <option value="Dr. Maria Rodriguez">Dr. Maria Rodriguez</option>
+                  <option value="Dr. Sarah Mitchell">Dr. Sarah Mitchell</option>
+                  <option value="Dr. James Chen">Dr. James Chen</option>
+                  <option value="Dr. Emily Thompson">Dr. Emily Thompson</option>
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div className="form-section">
+                <label className="form-label">📝 Notes (Optional)</label>
+                <textarea
+                  value={appointmentNotes}
+                  onChange={(e) => setAppointmentNotes(e.target.value)}
+                  placeholder="What would you like to discuss? Any specific concerns?"
+                  className="appointment-notes"
+                  rows="3"
+                />
+              </div>
+
+              {/* Action Buttons - THIS IS WHERE THE API CALL SHOULD BE */}
+              <div className="modal-actions">
+                <button 
+                  className="action-btn secondary"
+                  onClick={() => setShowAppointmentModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="action-btn primary"
+                  onClick={async () => {
+                    console.log('Book Appointment button clicked!');
+                    
+                    if (selectedDate && selectedTime && selectedCounselor) {
+                      console.log('All fields selected, making API call...');
+                      
+                      try {
+                        // Get user data for API call
+                        const userData = JSON.parse(localStorage.getItem('mindbridge_user') || '{}');
+                        const userId = userData.id || 1;
+                        
+                        console.log('User ID:', userId);
+                        
+                        // Convert date and time to proper format for API
+                        const appointmentDateTime = new Date(selectedDate);
+                        const [time, period] = selectedTime.split(' ');
+                        const [hours, minutes] = time.split(':');
+                        let hour24 = parseInt(hours);
+                        
+                        // Convert to 24-hour format
+                        if (period === 'PM' && hour24 !== 12) hour24 += 12;
+                        if (period === 'AM' && hour24 === 12) hour24 = 0;
+                        
+                        appointmentDateTime.setHours(hour24, parseInt(minutes), 0, 0);
+                        
+                        console.log('Appointment DateTime:', appointmentDateTime.toISOString());
+                        
+                        // Make API call to save appointment
+                        console.log('Making API call to create appointment...');
+                        const response = await fetch('http://localhost:5000/api/appointments', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            studentId: userId,
+                            counselorId: 2, // Default to counselor ID 2
+                            appointmentDate: appointmentDateTime.toISOString(),
+                            notes: appointmentNotes || 'Appointment booked via dashboard'
+                          })
+                        });
+                        
+                        console.log('API Response status:', response.status);
+                        
+                        if (response.ok) {
+                          const result = await response.json();
+                          console.log('Appointment created successfully:', result);
+                          
+                          // Store confirmed appointment details for modal
+                          setConfirmedAppointment({
+                            date: selectedDate,
+                            time: selectedTime,
+                            counselor: selectedCounselor,
+                            notes: appointmentNotes
+                          });
+                          
+                          // Close booking modal and show confirmation
+                          setShowAppointmentModal(false);
+                          setShowConfirmationModal(true);
+                          
+                          // Refresh appointments list to show new appointment
+                          console.log('Refreshing appointments list...');
+                          loadDashboardData();
+                          
+                          // Reset form
+                          setSelectedDate(new Date());
+                          setSelectedTime('');
+                          setSelectedCounselor('');
+                          setAppointmentNotes('');
+                        } else {
+                          const errorData = await response.json();
+                          console.error('API Error:', errorData);
+                          alert(`Failed to book appointment: ${errorData.error || 'Unknown error'}`);
+                        }
+                      } catch (error) {
+                        console.error('Error booking appointment:', error);
+                        alert('Error booking appointment. Please try again.');
+                      }
+                    } else {
+                      console.log('Missing required fields');
+                      alert('Please select a date, time, and counselor.');
+                    }
+                  }}
+                >
+                  Book Appointment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Beautiful Confirmation Modal - SIMPLE DISPLAY ONLY */}
+      {showConfirmationModal && confirmedAppointment && (
+        <div className="modal-overlay" onClick={() => setShowConfirmationModal(false)}>
+          <div className="modal-content confirmation-modal" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Success Header */}
+            <div className="confirmation-header">
+              <div className="success-icon">
+                <div className="checkmark">✓</div>
+              </div>
+              <h3>Appointment Confirmed!</h3>
+              <p className="confirmation-subtitle">Your appointment has been successfully booked</p>
+            </div>
+
+            {/* Appointment Details Card */}
+            <div className="appointment-summary">
+              <div className="summary-item">
+                <span className="summary-icon">📅</span>
+                <div className="summary-details">
+                  <span className="summary-label">Date</span>
+                  <span className="summary-value">
+                    {confirmedAppointment.date.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="summary-item">
+                <span className="summary-icon">🕐</span>
+                <div className="summary-details">
+                  <span className="summary-label">Time</span>
+                  <span className="summary-value">{confirmedAppointment.time}</span>
+                </div>
+              </div>
+
+              <div className="summary-item">
+                <span className="summary-icon">👤</span>
+                <div className="summary-details">
+                  <span className="summary-label">Counselor</span>
+                  <span className="summary-value">{confirmedAppointment.counselor}</span>
+                </div>
+              </div>
+
+              {confirmedAppointment.notes && (
+                <div className="summary-item">
+                  <span className="summary-icon">📝</span>
+                  <div className="summary-details">
+                    <span className="summary-label">Notes</span>
+                    <span className="summary-value">{confirmedAppointment.notes}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Next Steps */}
+            <div className="next-steps">
+              <h4>What's Next?</h4>
+              <ul>
+                <li>📧 Confirmation email will be sent shortly</li>
+                <li>📱 You'll receive a reminder 24 hours before</li>
+                <li>💬 Feel free to reach out if you need to reschedule</li>
+              </ul>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="confirmation-actions">
+              <button 
+                className="action-btn secondary"
+                onClick={() => {
+                  setShowConfirmationModal(false);
+                  setSelectedTab('appointments');
+                }}
+              >
+                View My Appointments
+              </button>
+              <button 
+                className="action-btn primary"
+                onClick={() => {
+                  setShowConfirmationModal(false);
+                  setShowAppointmentModal(true);
+                }}
+              >
+                Book Another Appointment
+              </button>
+            </div>
+
           </div>
         </div>
       )}
