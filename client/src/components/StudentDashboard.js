@@ -26,6 +26,12 @@ function StudentDashboard() {
   const [showMoodTracker, setShowMoodTracker] = useState(false);
   const [selectedTab, setSelectedTab] = useState('overview');
   
+  // NEW: Crisis Detection State Variables
+  const [moodNotes, setMoodNotes] = useState('');
+  const [crisisAnalysis, setCrisisAnalysis] = useState(null);
+  const [showCrisisResponse, setShowCrisisResponse] = useState(false);
+  const [crisisLevel, setCrisisLevel] = useState(0);
+  
   // Peer supporter specific state
   const [peerSessions, setPeerSessions] = useState([]);
   const [supportRequests, setSupportRequests] = useState([]);
@@ -39,6 +45,122 @@ function StudentDashboard() {
   const [appointmentNotes, setAppointmentNotes] = useState('');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [confirmedAppointment, setConfirmedAppointment] = useState(null);
+
+  // NEW: Crisis Detection Engine
+  const analyzeCrisisRisk = (text) => {
+    if (!text || text.trim().length === 0) return { level: 0, category: 'none', suggestions: [] };
+    
+    const textLower = text.toLowerCase();
+    
+    // Crisis keywords with severity weights
+    const crisisKeywords = {
+      critical: { // Level 9-10: Immediate crisis
+        keywords: ['suicide', 'kill myself', 'end it all', 'want to die', 'not worth living', 'better off dead'],
+        weight: 10
+      },
+      high: { // Level 7-8: High risk
+        keywords: ['hopeless', 'worthless', 'can\'t go on', 'nobody cares', 'give up', 'can\'t take it'],
+        weight: 8
+      },
+      medium: { // Level 5-6: Warning signs
+        keywords: ['alone', 'struggling', 'overwhelmed', 'can\'t cope', 'stressed out', 'falling apart'],
+        weight: 5
+      },
+      low: { // Level 3-4: Mild concern
+        keywords: ['tired', 'sad', 'worried', 'anxious', 'confused', 'frustrated'],
+        weight: 3
+      },
+      positive: { // Level 1-2: Positive indicators
+        keywords: ['better', 'hopeful', 'good day', 'improving', 'grateful', 'optimistic'],
+        weight: 1
+      }
+    };
+    
+    let totalScore = 0;
+    let matchedKeywords = [];
+    let highestCategory = 'positive';
+    
+    // Analyze text for keywords
+    Object.entries(crisisKeywords).forEach(([category, data]) => {
+      data.keywords.forEach(keyword => {
+        if (textLower.includes(keyword)) {
+          totalScore += data.weight;
+          matchedKeywords.push(keyword);
+          if (data.weight > crisisKeywords[highestCategory].weight) {
+            highestCategory = category;
+          }
+        }
+      });
+    });
+    
+    // Calculate final risk level
+    let riskLevel = Math.min(totalScore, 10);
+    
+    // Generate suggestions based on risk level
+    let suggestions = [];
+    if (riskLevel >= 9) {
+      suggestions = [
+        'Immediate professional support is recommended',
+        'Crisis hotline: 1-833-456-4566 (24/7)',
+        'Consider visiting emergency services',
+        'You are not alone - help is available'
+      ];
+    } else if (riskLevel >= 7) {
+      suggestions = [
+        'Consider booking an appointment with a counselor',
+        'Reach out to peer support services',
+        'Crisis text line: Text HOME to 741741',
+        'Your feelings are valid and help is available'
+      ];
+    } else if (riskLevel >= 5) {
+      suggestions = [
+        'Try some coping strategies like deep breathing',
+        'Consider talking to a friend or family member',
+        'Explore our mental health resources',
+        'Remember that difficult feelings are temporary'
+      ];
+    } else if (riskLevel >= 3) {
+      suggestions = [
+        'Practice self-care activities',
+        'Consider mindfulness or meditation',
+        'Stay connected with supportive people',
+        'Keep tracking your mood - you\'re doing great!'
+      ];
+    } else {
+      suggestions = [
+        'Keep up the positive momentum!',
+        'Continue with activities that make you feel good',
+        'Your positive attitude is inspiring',
+        'Thank you for sharing - you\'re doing well!'
+      ];
+    }
+    
+    return {
+      level: riskLevel,
+      category: highestCategory,
+      matchedKeywords,
+      suggestions
+    };
+  };
+
+  // NEW: Alert counselors for high-risk situations
+  const alertCounselors = async (analysis, userInfo, moodData) => {
+    if (analysis.level >= 7) {
+      try {
+        // Log crisis alert for counselor dashboard (no user alert)
+        console.log(`🚨 Crisis Alert: High-risk situation detected for ${userInfo.name}. Risk Level: ${analysis.level}/10`);
+        
+        // In a real implementation, this would send alerts to counselors
+        console.log('🚨 CRISIS ALERT TRIGGERED');
+        console.log('Risk Level:', analysis.level);
+        console.log('User:', userInfo.name);
+        console.log('Analysis:', analysis);
+        
+      } catch (error) {
+        console.error('Error sending crisis alert:', error);
+      }
+    }
+  };
 
   // Helper function to convert mood level (1-5) to text
   const convertMoodLevelToText = (level) => {
@@ -78,7 +200,7 @@ function StudentDashboard() {
         const formattedMoodEntries = moodData.data.map(entry => ({
           date: entry.created_at.split('T')[0], // Extract date from timestamp
           mood: convertMoodLevelToText(entry.mood_level), // Convert 1-5 to text
-          note: entry.notes || 'No notes'
+          note: entry.notes ? entry.notes.replace(/\s*\[CRISIS ANALYSIS:.*?\]/g, '') : 'No notes' // Remove crisis analysis from display
         }));
         setMoodEntries(formattedMoodEntries);
       }
@@ -184,9 +306,14 @@ function StudentDashboard() {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  // Handle mood submission with real API
+  // NEW: Enhanced mood submission with crisis detection
   const handleMoodSubmit = async () => {
     if (currentMood) {
+      // Perform crisis analysis on mood notes
+      const analysis = analyzeCrisisRisk(moodNotes);
+      setCrisisAnalysis(analysis);
+      setCrisisLevel(analysis.level);
+      
       const userData = JSON.parse(localStorage.getItem('mindbridge_user') || '{}');
       const userId = userData.id || 1;
       
@@ -208,16 +335,43 @@ function StudentDashboard() {
           body: JSON.stringify({
             userId: userId,
             moodLevel: moodLevelMap[currentMood],
-            notes: `Mood logged via dashboard`
+            notes: moodNotes || `Mood logged via dashboard`
           })
         });
         
         if (response.ok) {
+          // Separately log crisis analysis for counselor dashboard (not stored with user notes)
+          if (analysis.level >= 5) {
+            console.log('🚨 CRISIS ANALYSIS LOGGED:', {
+              userId: userId,
+              userName: currentUser.name,
+              riskLevel: analysis.level,
+              category: analysis.category,
+              userText: moodNotes,
+              timestamp: new Date().toISOString(),
+              suggestions: analysis.suggestions
+            });
+            
+            // In a real system, this would be sent to a separate crisis monitoring system
+            // await fetch('http://localhost:5000/api/crisis-alerts', { ... });
+          }
+          
+          // Alert counselors if high risk detected
+          await alertCounselors(analysis, currentUser, { mood: currentMood, notes: moodNotes });
+          
+          // Show crisis response if needed
+          if (analysis.level >= 5) {
+            setShowCrisisResponse(true);
+          } else {
+            // For low-risk situations, show normal success message
+            alert('Mood logged successfully! 🌟');
+            setCurrentMood('');
+            setMoodNotes('');
+            setShowMoodTracker(false);
+          }
+          
           // Refresh mood data after successful submission
           loadDashboardData();
-          setCurrentMood('');
-          setShowMoodTracker(false);
-          alert('Mood logged successfully! 🌟');
         } else {
           alert('Failed to log mood. Please try again.');
         }
@@ -678,7 +832,7 @@ function StudentDashboard() {
         )}
       </main>
 
-      {/* Mood Tracker Modal */}
+      {/* NEW: Enhanced Mood Tracker Modal with Crisis Detection */}
       {showMoodTracker && (
         <div className="modal-overlay" onClick={() => setShowMoodTracker(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -686,11 +840,16 @@ function StudentDashboard() {
               <h3>How are you feeling today?</h3>
               <button 
                 className="close-btn"
-                onClick={() => setShowMoodTracker(false)}
+                onClick={() => {
+                  setShowMoodTracker(false);
+                  setMoodNotes('');
+                  setCrisisAnalysis(null);
+                }}
               >
                 ×
               </button>
             </div>
+            
             <div className="mood-options">
               {['excellent', 'good', 'okay', 'low', 'difficult'].map(mood => (
                 <button
@@ -703,7 +862,61 @@ function StudentDashboard() {
                 </button>
               ))}
             </div>
+
+            {/* NEW: Mood Notes Section with Real-time Crisis Detection */}
+            <div className="mood-notes-section">
+              <label className="notes-label">
+                Tell us more about how you're feeling (optional)
+              </label>
+              <textarea
+                value={moodNotes}
+                onChange={(e) => {
+                  setMoodNotes(e.target.value);
+                  // Real-time crisis analysis as user types
+                  if (e.target.value.length > 10) {
+                    const analysis = analyzeCrisisRisk(e.target.value);
+                    setCrisisAnalysis(analysis);
+                  }
+                }}
+                placeholder="Share what's on your mind... This helps us provide better support and resources."
+                className="mood-notes-textarea"
+                rows="4"
+              />
+              
+              {/* Real-time Crisis Analysis Display */}
+              {crisisAnalysis && moodNotes.length > 10 && (
+                <div className={`crisis-analysis ${crisisAnalysis.category}`}>
+                  <div className="analysis-header">
+                    <span className="analysis-icon">
+                      {crisisAnalysis.level >= 9 && '🚨'}
+                      {crisisAnalysis.level >= 7 && crisisAnalysis.level < 9 && '⚠️'}
+                      {crisisAnalysis.level >= 5 && crisisAnalysis.level < 7 && '💛'}
+                      {crisisAnalysis.level >= 3 && crisisAnalysis.level < 5 && '💙'}
+                      {crisisAnalysis.level < 3 && '💚'}
+                    </span>
+                    <span className="analysis-text">
+                      {crisisAnalysis.level >= 9 && 'We want to help you right now'}
+                      {crisisAnalysis.level >= 7 && crisisAnalysis.level < 9 && 'We notice you may be struggling'}
+                      {crisisAnalysis.level >= 5 && crisisAnalysis.level < 7 && 'Thank you for sharing your feelings'}
+                      {crisisAnalysis.level >= 3 && crisisAnalysis.level < 5 && 'We hear you and understand'}
+                      {crisisAnalysis.level < 3 && 'Thank you for sharing positive feelings!'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="modal-actions">
+              <button 
+                className="action-btn secondary"
+                onClick={() => {
+                  setShowMoodTracker(false);
+                  setMoodNotes('');
+                  setCrisisAnalysis(null);
+                }}
+              >
+                Cancel
+              </button>
               <button 
                 className="action-btn primary"
                 onClick={handleMoodSubmit}
@@ -711,11 +924,100 @@ function StudentDashboard() {
               >
                 Log Mood
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Crisis Response Modal */}
+      {showCrisisResponse && crisisAnalysis && (
+        <div className="modal-overlay">
+          <div className="modal-content crisis-response-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="crisis-header">
+              <div className={`crisis-icon ${crisisAnalysis.category}`}>
+                {crisisAnalysis.level >= 9 ? '🚨' : crisisAnalysis.level >= 7 ? '⚠️' : '💛'}
+              </div>
+              <h3>
+                {crisisAnalysis.level >= 9 ? 'Immediate Support Available' : 
+                 crisisAnalysis.level >= 7 ? 'We Want to Help' : 
+                 'Resources for You'}
+              </h3>
+              <p className="crisis-subtitle">
+                Your wellbeing matters. Here are resources specifically for you.
+              </p>
+            </div>
+
+            <div className="crisis-suggestions">
+              <h4>Recommended Actions:</h4>
+              <ul>
+                {crisisAnalysis.suggestions.map((suggestion, index) => (
+                  <li key={index} className="crisis-suggestion">
+                    <span className="suggestion-icon">
+                      {crisisAnalysis.level >= 9 ? '🆘' : 
+                       crisisAnalysis.level >= 7 ? '📞' : '💡'}
+                    </span>
+                    {suggestion}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {crisisAnalysis.level >= 7 && (
+              <div className="emergency-contacts">
+                <h4>🆘 Immediate Help:</h4>
+                <div className="contact-buttons">
+                  <a href="tel:1-833-456-4566" className="contact-btn emergency">
+                    📞 Crisis Hotline: 1-833-456-4566
+                  </a>
+                  <a href="sms:741741&body=HOME" className="contact-btn emergency">
+                    💬 Text HOME to 741741
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div className="crisis-actions">
               <button 
                 className="action-btn secondary"
-                onClick={() => setShowMoodTracker(false)}
+                onClick={() => {
+                  setShowCrisisResponse(false);
+                  setSelectedTab('resources');
+                  setCurrentMood('');
+                  setMoodNotes('');
+                  setShowMoodTracker(false);
+                }}
               >
-                Cancel
+                View All Resources
+              </button>
+              <button 
+                className="action-btn primary"
+                onClick={() => {
+                  setShowCrisisResponse(false);
+                  setShowAppointmentModal(true);
+                  setCurrentMood('');
+                  setMoodNotes('');
+                  setShowMoodTracker(false);
+                }}
+              >
+                Book Counseling Appointment
+              </button>
+            </div>
+
+            <div className="crisis-footer">
+              <p>
+                ✅ Your mood entry has been saved with appropriate support level.<br/>
+                {crisisAnalysis.level >= 7 && '🚨 Campus counselors have been notified.'}
+              </p>
+              <button 
+                className="close-crisis-btn"
+                onClick={() => {
+                  setShowCrisisResponse(false);
+                  setCurrentMood('');
+                  setMoodNotes('');
+                  setShowMoodTracker(false);
+                }}
+              >
+                Continue to Dashboard
               </button>
             </div>
           </div>

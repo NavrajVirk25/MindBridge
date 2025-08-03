@@ -16,6 +16,7 @@ function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [systemHealth, setSystemHealth] = useState({});
   const [recentActivity, setRecentActivity] = useState([]);
+  const [crisisManagement, setCrisisManagement] = useState({});
 
   // Load dashboard data
   useEffect(() => {
@@ -23,7 +24,7 @@ function AdminDashboard() {
   }, []);
 
   const loadDashboardData = () => {
-    // Mock platform statistics
+    // Enhanced platform statistics with crisis data
     setPlatformStats({
       totalUsers: 2847,
       activeStudents: 2341,
@@ -32,10 +33,47 @@ function AdminDashboard() {
       totalSessions: 15623,
       resourcesAccessed: 8934,
       crisisInterventions: 23,
-      userSatisfaction: 4.7
+      userSatisfaction: 4.7,
+      // New crisis metrics
+      crisisDetections: 89,
+      successfulInterventions: 94.7,
+      avgResponseTime: 12,
+      criticalAlerts: 5,
+      systemUptime: 99.8
     });
 
-    // Mock user data
+    // Crisis management data
+    setCrisisManagement({
+      totalDetections: 89,
+      activeAlerts: 4,
+      resolvedToday: 7,
+      avgResponseTime: '12 minutes',
+      counselorResponseRate: 98.5,
+      emergencyEscalations: 3,
+      riskDistribution: {
+        critical: 5,
+        high: 15,
+        medium: 35,
+        low: 34
+      },
+      trendData: [
+        { date: '2025-07-26', total: 12, critical: 1, high: 3, medium: 5, low: 3 },
+        { date: '2025-07-27', total: 8, critical: 0, high: 2, medium: 3, low: 3 },
+        { date: '2025-07-28', total: 15, critical: 2, high: 4, medium: 6, low: 3 },
+        { date: '2025-07-29', total: 10, critical: 0, high: 2, medium: 4, low: 4 },
+        { date: '2025-07-30', total: 18, critical: 1, high: 5, medium: 7, low: 5 },
+        { date: '2025-08-01', total: 13, critical: 1, high: 3, medium: 5, low: 4 },
+        { date: '2025-08-02', total: 13, critical: 0, high: 2, medium: 5, low: 6 }
+      ],
+      counselorWorkload: [
+        { name: 'Dr. Sarah Mitchell', activeCases: 12, crisisAlerts: 3, responseTime: '8 min' },
+        { name: 'Dr. James Chen', activeCases: 15, crisisAlerts: 2, responseTime: '12 min' },
+        { name: 'Dr. Maria Rodriguez', activeCases: 10, crisisAlerts: 1, responseTime: '15 min' },
+        { name: 'Dr. Emily Thompson', activeCases: 8, crisisAlerts: 2, responseTime: '10 min' }
+      ]
+    });
+
+    // Enhanced user data with risk indicators
     setUsers([
       {
         id: 1,
@@ -45,7 +83,9 @@ function AdminDashboard() {
         status: 'active',
         lastLogin: '2025-07-01',
         joinDate: '2024-09-15',
-        sessionsCount: 12
+        sessionsCount: 12,
+        riskLevel: 8,
+        recentCrisis: true
       },
       {
         id: 2,
@@ -55,7 +95,9 @@ function AdminDashboard() {
         status: 'active',
         lastLogin: '2025-07-01',
         joinDate: '2024-08-20',
-        sessionsCount: 245
+        sessionsCount: 245,
+        activeCases: 12,
+        crisisAlerts: 3
       },
       {
         id: 3,
@@ -65,7 +107,9 @@ function AdminDashboard() {
         status: 'active',
         lastLogin: '2025-06-30',
         joinDate: '2024-09-10',
-        sessionsCount: 8
+        sessionsCount: 8,
+        riskLevel: 6,
+        recentCrisis: false
       },
       {
         id: 4,
@@ -75,49 +119,66 @@ function AdminDashboard() {
         status: 'inactive',
         lastLogin: '2025-06-25',
         joinDate: '2024-07-15',
-        sessionsCount: 189
+        sessionsCount: 189,
+        activeCases: 0,
+        crisisAlerts: 0
       }
     ]);
 
-    // Mock system health
+    // Enhanced system health with crisis monitoring
     setSystemHealth({
       serverStatus: 'healthy',
       apiResponseTime: 245,
       databaseConnections: 95,
       storageUsage: 67,
       activeConnections: 324,
-      errorRate: 0.02
+      errorRate: 0.02,
+      crisisSystemStatus: 'operational',
+      aiModelAccuracy: 94.7,
+      alertDeliveryRate: 99.2
     });
 
-    // Mock recent activity
+    // Enhanced recent activity with crisis events
     setRecentActivity([
       {
         id: 1,
-        type: 'user_registration',
-        description: 'New student registered: Marcus Williams',
-        timestamp: '2025-07-01 15:30',
-        severity: 'info'
+        type: 'crisis_alert',
+        description: 'High-risk crisis detected for student Alex J. - AI confidence 87%',
+        timestamp: '2025-08-02 16:59',
+        severity: 'high',
+        details: 'Automatic counselor notification sent'
       },
       {
         id: 2,
-        type: 'crisis_alert',
-        description: 'Crisis intervention initiated for student ID: 100234567',
-        timestamp: '2025-07-01 14:30',
-        severity: 'high'
+        type: 'crisis_resolved',
+        description: 'Crisis intervention successful for student ID: 100345679',
+        timestamp: '2025-08-02 14:30',
+        severity: 'info',
+        details: 'Emergency contact completed, follow-up scheduled'
       },
       {
         id: 3,
-        type: 'system_update',
-        description: 'Platform updated to version 2.4.1',
-        timestamp: '2025-07-01 12:00',
-        severity: 'info'
+        type: 'user_registration',
+        description: 'New student registered: Marcus Williams',
+        timestamp: '2025-08-02 12:15',
+        severity: 'info',
+        details: 'Account verified and activated'
       },
       {
         id: 4,
+        type: 'system_update',
+        description: 'Crisis detection AI model updated to v2.4.1',
+        timestamp: '2025-08-02 10:00',
+        severity: 'info',
+        details: 'Improved accuracy by 3.2%'
+      },
+      {
+        id: 5,
         type: 'counselor_added',
         description: 'New counselor verified: Dr. Lisa Thompson',
-        timestamp: '2025-07-01 10:15',
-        severity: 'info'
+        timestamp: '2025-08-01 15:30',
+        severity: 'info',
+        details: 'Crisis response training completed'
       }
     ]);
   };
@@ -142,6 +203,13 @@ function AdminDashboard() {
       pending: '#ed8936'
     };
     return colors[status] || '#718096';
+  };
+
+  const getRiskColor = (level) => {
+    if (level >= 9) return '#e53e3e'; // Critical
+    if (level >= 7) return '#d69e2e'; // High
+    if (level >= 5) return '#ecc94b'; // Medium
+    return '#48bb78'; // Low
   };
 
   const getSeverityColor = (severity) => {
@@ -192,6 +260,12 @@ function AdminDashboard() {
             📊 Analytics
           </button>
           <button 
+            className={`nav-tab ${selectedTab === 'crisis' ? 'active' : ''}`}
+            onClick={() => setSelectedTab('crisis')}
+          >
+            🚨 Crisis Management
+          </button>
+          <button 
             className={`nav-tab ${selectedTab === 'users' ? 'active' : ''}`}
             onClick={() => setSelectedTab('users')}
           >
@@ -221,10 +295,10 @@ function AdminDashboard() {
       {/* Main Content */}
       <main className="dashboard-main">
         
-        {/* Analytics Tab */}
+        {/* Analytics Tab - Enhanced with Crisis Data */}
         {selectedTab === 'overview' && (
           <div className="overview-content">
-            <h2>Platform Analytics</h2>
+            <h2>Platform Analytics & Crisis Overview</h2>
             
             <div className="analytics-grid">
               {/* Key Metrics */}
@@ -252,6 +326,33 @@ function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Crisis Statistics */}
+              <div className="dashboard-card crisis-stats-card">
+                <h3>🚨 Crisis Detection Analytics</h3>
+                <div className="crisis-metrics-grid">
+                  <div className="crisis-metric-item">
+                    <span className="crisis-metric-number">{platformStats.crisisDetections || 0}</span>
+                    <span className="crisis-metric-label">Total Detections</span>
+                    <span className="crisis-metric-period">This Month</span>
+                  </div>
+                  <div className="crisis-metric-item success">
+                    <span className="crisis-metric-number">{platformStats.successfulInterventions || 0}%</span>
+                    <span className="crisis-metric-label">Success Rate</span>
+                    <span className="crisis-metric-change positive">+3.2% improvement</span>
+                  </div>
+                  <div className="crisis-metric-item">
+                    <span className="crisis-metric-number">{platformStats.avgResponseTime || 0} min</span>
+                    <span className="crisis-metric-label">Avg Response</span>
+                    <span className="crisis-metric-change positive">-2 min faster</span>
+                  </div>
+                  <div className="crisis-metric-item critical">
+                    <span className="crisis-metric-number">{platformStats.criticalAlerts || 0}</span>
+                    <span className="crisis-metric-label">Critical Alerts</span>
+                    <span className="crisis-metric-period">Active</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Usage Statistics */}
               <div className="dashboard-card usage-stats">
                 <h3>Usage Statistics</h3>
@@ -268,6 +369,53 @@ function AdminDashboard() {
                     <span className="usage-label">Crisis Interventions</span>
                     <span className="usage-value critical">{platformStats.crisisInterventions || 0}</span>
                   </div>
+                  <div className="usage-item">
+                    <span className="usage-label">System Uptime</span>
+                    <span className="usage-value success">{platformStats.systemUptime || 0}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Crisis Trend Visualization */}
+              <div className="dashboard-card crisis-trend-card">
+                <h3>📈 Crisis Detection Trends (7 Days)</h3>
+                <div className="admin-trend-chart">
+                  <div className="admin-chart-legend">
+                    <span className="admin-legend-item critical">🔴 Critical</span>
+                    <span className="admin-legend-item high">🟠 High</span>
+                    <span className="admin-legend-item medium">🟡 Medium</span>
+                    <span className="admin-legend-item low">🟢 Low</span>
+                  </div>
+                  <div className="admin-chart-bars">
+                    {crisisManagement.trendData?.map((day, index) => (
+                      <div key={index} className="admin-chart-day">
+                        <div className="admin-chart-bar">
+                          <div 
+                            className="admin-bar-segment critical" 
+                            style={{ height: `${day.critical * 25}px` }}
+                            title={`Critical: ${day.critical}`}
+                          ></div>
+                          <div 
+                            className="admin-bar-segment high" 
+                            style={{ height: `${day.high * 15}px` }}
+                            title={`High: ${day.high}`}
+                          ></div>
+                          <div 
+                            className="admin-bar-segment medium" 
+                            style={{ height: `${day.medium * 10}px` }}
+                            title={`Medium: ${day.medium}`}
+                          ></div>
+                          <div 
+                            className="admin-bar-segment low" 
+                            style={{ height: `${day.low * 8}px` }}
+                            title={`Low: ${day.low}`}
+                          ></div>
+                        </div>
+                        <div className="admin-chart-label">{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        <div className="admin-chart-total">{day.total}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -280,16 +428,16 @@ function AdminDashboard() {
                     <span className="health-status healthy">● Online</span>
                   </div>
                   <div className="health-item">
-                    <span className="health-label">API Response</span>
-                    <span className="health-value">{systemHealth.apiResponseTime || 0}ms</span>
+                    <span className="health-label">Crisis AI System</span>
+                    <span className="health-status healthy">● Operational</span>
                   </div>
                   <div className="health-item">
-                    <span className="health-label">Active Users</span>
-                    <span className="health-value">{systemHealth.activeConnections || 0}</span>
+                    <span className="health-label">AI Model Accuracy</span>
+                    <span className="health-value">{systemHealth.aiModelAccuracy || 0}%</span>
                   </div>
                   <div className="health-item">
-                    <span className="health-label">Error Rate</span>
-                    <span className="health-value">{((systemHealth.errorRate || 0) * 100).toFixed(2)}%</span>
+                    <span className="health-label">Alert Delivery</span>
+                    <span className="health-value">{systemHealth.alertDeliveryRate || 0}%</span>
                   </div>
                 </div>
               </div>
@@ -302,6 +450,7 @@ function AdminDashboard() {
                     <div key={activity.id} className="activity-item">
                       <div className="activity-info">
                         <span className="activity-description">{activity.description}</span>
+                        <span className="activity-details">{activity.details}</span>
                         <span className="activity-time">{activity.timestamp}</span>
                       </div>
                       <div 
@@ -316,7 +465,165 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* User Management Tab */}
+        {/* Crisis Management Tab - New */}
+        {selectedTab === 'crisis' && (
+          <div className="crisis-management-content">
+            <div className="crisis-management-header">
+              <h2>🚨 Crisis Management System</h2>
+              <div className="crisis-management-stats">
+                <div className="crisis-stat-card">
+                  <span className="crisis-stat-number">{crisisManagement.activeAlerts}</span>
+                  <span className="crisis-stat-label">Active Alerts</span>
+                </div>
+                <div className="crisis-stat-card">
+                  <span className="crisis-stat-number">{crisisManagement.resolvedToday}</span>
+                  <span className="crisis-stat-label">Resolved Today</span>
+                </div>
+                <div className="crisis-stat-card">
+                  <span className="crisis-stat-number">{crisisManagement.avgResponseTime}</span>
+                  <span className="crisis-stat-label">Avg Response</span>
+                </div>
+                <div className="crisis-stat-card">
+                  <span className="crisis-stat-number">{crisisManagement.counselorResponseRate}%</span>
+                  <span className="crisis-stat-label">Counselor Response Rate</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="crisis-management-grid">
+              {/* Crisis Risk Distribution */}
+              <div className="dashboard-card crisis-distribution">
+                <h3>Risk Level Distribution</h3>
+                <div className="risk-distribution-admin">
+                  {Object.entries(crisisManagement.riskDistribution || {}).map(([level, count]) => (
+                    <div key={level} className="risk-distribution-item">
+                      <div className="risk-distribution-label">
+                        <span className={`risk-dot-admin ${level}`}></span>
+                        {level.charAt(0).toUpperCase() + level.slice(1)} Risk
+                      </div>
+                      <div className="risk-distribution-count">{count}</div>
+                      <div className="risk-distribution-bar">
+                        <div 
+                          className={`risk-distribution-fill ${level}`}
+                          style={{ width: `${(count / 89) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Counselor Workload */}
+              <div className="dashboard-card counselor-workload">
+                <h3>Counselor Crisis Workload</h3>
+                <div className="counselor-workload-list">
+                  {crisisManagement.counselorWorkload?.map((counselor, index) => (
+                    <div key={index} className="counselor-workload-item">
+                      <div className="counselor-info">
+                        <h4>{counselor.name}</h4>
+                        <div className="counselor-stats">
+                          <span className="counselor-stat">
+                            📋 {counselor.activeCases} Active Cases
+                          </span>
+                          <span className="counselor-stat crisis">
+                            🚨 {counselor.crisisAlerts} Crisis Alerts
+                          </span>
+                          <span className="counselor-stat">
+                            ⏱️ {counselor.responseTime} Response
+                          </span>
+                        </div>
+                      </div>
+                      <div className="counselor-workload-indicator">
+                        <div 
+                          className="workload-bar"
+                          style={{ 
+                            width: `${(counselor.activeCases / 20) * 100}%`,
+                            backgroundColor: counselor.activeCases > 15 ? '#e53e3e' : counselor.activeCases > 10 ? '#d69e2e' : '#48bb78'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Crisis Response Configuration */}
+              <div className="dashboard-card crisis-config">
+                <h3>Crisis Response Configuration</h3>
+                <div className="crisis-config-list">
+                  <div className="config-item">
+                    <div className="config-label">AI Model Sensitivity</div>
+                    <div className="config-control">
+                      <input type="range" min="1" max="10" defaultValue="7" />
+                      <span className="config-value">7/10</span>
+                    </div>
+                  </div>
+                  <div className="config-item">
+                    <div className="config-label">Auto-Escalation Threshold</div>
+                    <div className="config-control">
+                      <select defaultValue="8">
+                        <option value="7">Risk Level 7</option>
+                        <option value="8">Risk Level 8</option>
+                        <option value="9">Risk Level 9</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="config-item">
+                    <div className="config-label">Response Time Target</div>
+                    <div className="config-control">
+                      <input type="number" defaultValue="15" min="5" max="60" />
+                      <span className="config-unit">minutes</span>
+                    </div>
+                  </div>
+                  <div className="config-item">
+                    <div className="config-label">Emergency Notifications</div>
+                    <div className="config-control">
+                      <label className="toggle-switch">
+                        <input type="checkbox" defaultChecked />
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <button className="action-btn primary">Save Configuration</button>
+              </div>
+
+              {/* AI Model Performance */}
+              <div className="dashboard-card ai-performance">
+                <h3>🤖 AI Model Performance</h3>
+                <div className="ai-performance-metrics">
+                  <div className="ai-metric">
+                    <div className="ai-metric-icon">🎯</div>
+                    <div className="ai-metric-info">
+                      <span className="ai-metric-value">94.7%</span>
+                      <span className="ai-metric-label">Detection Accuracy</span>
+                    </div>
+                  </div>
+                  <div className="ai-metric">
+                    <div className="ai-metric-icon">⚡</div>
+                    <div className="ai-metric-info">
+                      <span className="ai-metric-value">0.3s</span>
+                      <span className="ai-metric-label">Analysis Time</span>
+                    </div>
+                  </div>
+                  <div className="ai-metric">
+                    <div className="ai-metric-icon">🔄</div>
+                    <div className="ai-metric-info">
+                      <span className="ai-metric-value">v2.4.1</span>
+                      <span className="ai-metric-label">Model Version</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="ai-actions">
+                  <button className="action-btn secondary">View Model Logs</button>
+                  <button className="action-btn secondary">Retrain Model</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User Management Tab - Enhanced */}
         {selectedTab === 'users' && (
           <div className="users-content">
             <div className="users-header">
@@ -331,7 +638,7 @@ function AdminDashboard() {
               <button className="filter-btn active">All Users</button>
               <button className="filter-btn">Students</button>
               <button className="filter-btn">Counselors</button>
-              <button className="filter-btn">Admins</button>
+              <button className="filter-btn">High Risk</button>
             </div>
             
             <div className="users-table">
@@ -340,13 +647,16 @@ function AdminDashboard() {
                 <span>Email</span>
                 <span>Role</span>
                 <span>Status</span>
+                <span>Risk Level</span>
                 <span>Last Login</span>
-                <span>Sessions</span>
                 <span>Actions</span>
               </div>
               {users.map(user => (
                 <div key={user.id} className="table-row">
-                  <span className="user-name">{user.name}</span>
+                  <span className="user-name">
+                    {user.name}
+                    {user.recentCrisis && <span className="crisis-indicator">🚨</span>}
+                  </span>
                   <span className="user-email">{user.email}</span>
                   <span 
                     className="user-role"
@@ -360,12 +670,25 @@ function AdminDashboard() {
                   >
                     ● {user.status}
                   </span>
+                  <span className="user-risk">
+                    {user.riskLevel ? (
+                      <span 
+                        className="risk-badge-table"
+                        style={{ backgroundColor: getRiskColor(user.riskLevel) }}
+                      >
+                        {user.riskLevel}
+                      </span>
+                    ) : (
+                      user.role === 'counselor' ? `${user.crisisAlerts} alerts` : '—'
+                    )}
+                  </span>
                   <span className="user-login">{user.lastLogin}</span>
-                  <span className="user-sessions">{user.sessionsCount}</span>
                   <div className="user-actions">
                     <button className="action-btn small secondary">Edit</button>
                     <button className="action-btn small secondary">View</button>
-                    <button className="action-btn small emergency">Block</button>
+                    {user.recentCrisis && (
+                      <button className="action-btn small emergency">Crisis</button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -395,6 +718,16 @@ function AdminDashboard() {
               </div>
               
               <div className="dashboard-card content-section">
+                <h3>🚨 Crisis Response Content</h3>
+                <p>Emergency protocols, crisis hotlines, and intervention procedures</p>
+                <div className="content-stats">
+                  <span>15 Crisis Protocols</span>
+                  <span>8 Emergency Contacts</span>
+                </div>
+                <button className="action-btn secondary">Manage Crisis Content</button>
+              </div>
+              
+              <div className="dashboard-card content-section">
                 <h3>📚 Educational Content</h3>
                 <p>Articles, videos, and guides for mental health education</p>
                 <div className="content-stats">
@@ -413,27 +746,18 @@ function AdminDashboard() {
                 </div>
                 <button className="action-btn secondary">Customize Platform</button>
               </div>
-              
-              <div className="dashboard-card content-section">
-                <h3>📢 Announcements</h3>
-                <p>System-wide notifications and important updates</p>
-                <div className="content-stats">
-                  <span>3 Active Announcements</span>
-                  <span>1 Scheduled</span>
-                </div>
-                <button className="action-btn secondary">Manage Announcements</button>
-              </div>
             </div>
           </div>
         )}
 
-        {/* System Monitor Tab */}
+        {/* System Monitor Tab - Enhanced */}
         {selectedTab === 'system' && (
           <div className="system-content">
             <div className="system-header">
               <h2>System Monitoring</h2>
               <div className="system-status">
                 <span className="status-indicator healthy">● All Systems Operational</span>
+                <span className="status-indicator healthy">● Crisis AI Online</span>
                 <span className="last-updated">Last updated: 2 minutes ago</span>
               </div>
             </div>
@@ -450,6 +774,13 @@ function AdminDashboard() {
                     </div>
                   </div>
                   <div className="metric-row">
+                    <span className="metric-name">Crisis AI Response</span>
+                    <span className="metric-value">0.3s</span>
+                    <div className="metric-bar">
+                      <div className="metric-fill success" style={{width: '15%'}}></div>
+                    </div>
+                  </div>
+                  <div className="metric-row">
                     <span className="metric-name">Database Connections</span>
                     <span className="metric-value">{systemHealth.databaseConnections || 0}%</span>
                     <div className="metric-bar">
@@ -457,20 +788,36 @@ function AdminDashboard() {
                     </div>
                   </div>
                   <div className="metric-row">
-                    <span className="metric-name">Storage Usage</span>
-                    <span className="metric-value">{systemHealth.storageUsage || 0}%</span>
+                    <span className="metric-name">Alert Delivery Rate</span>
+                    <span className="metric-value">{systemHealth.alertDeliveryRate || 0}%</span>
                     <div className="metric-bar">
-                      <div className="metric-fill warning" style={{width: '67%'}}></div>
-                    </div>
-                  </div>
-                  <div className="metric-row">
-                    <span className="metric-name">Active Connections</span>
-                    <span className="metric-value">{systemHealth.activeConnections || 0}</span>
-                    <div className="metric-bar">
-                      <div className="metric-fill" style={{width: '40%'}}></div>
+                      <div className="metric-fill success" style={{width: '99%'}}></div>
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              <div className="dashboard-card crisis-system-health">
+                <h3>🚨 Crisis System Health</h3>
+                <div className="crisis-health-info">
+                  <div className="crisis-health-item">
+                    <span className="crisis-health-label">AI Model Status</span>
+                    <span className="crisis-health-value success">Operational</span>
+                  </div>
+                  <div className="crisis-health-item">
+                    <span className="crisis-health-label">Detection Accuracy</span>
+                    <span className="crisis-health-value">{systemHealth.aiModelAccuracy}%</span>
+                  </div>
+                  <div className="crisis-health-item">
+                    <span className="crisis-health-label">Alert Queue</span>
+                    <span className="crisis-health-value">0 Pending</span>
+                  </div>
+                  <div className="crisis-health-item">
+                    <span className="crisis-health-label">Last Model Update</span>
+                    <span className="crisis-health-value">Aug 2, 2025</span>
+                  </div>
+                </div>
+                <button className="action-btn secondary">View Crisis Logs</button>
               </div>
               
               <div className="dashboard-card backup-status">
@@ -478,7 +825,7 @@ function AdminDashboard() {
                 <div className="backup-info">
                   <div className="backup-item">
                     <span className="backup-label">Last Backup</span>
-                    <span className="backup-value success">July 1, 2025 - 03:00 AM</span>
+                    <span className="backup-value success">August 2, 2025 - 03:00 AM</span>
                   </div>
                   <div className="backup-item">
                     <span className="backup-label">Backup Size</span>
@@ -489,30 +836,11 @@ function AdminDashboard() {
                     <span className="backup-value success">No threats detected</span>
                   </div>
                   <div className="backup-item">
-                    <span className="backup-label">SSL Certificate</span>
-                    <span className="backup-value">Valid until Dec 2025</span>
+                    <span className="backup-label">Crisis Data Backup</span>
+                    <span className="backup-value success">Encrypted & Secure</span>
                   </div>
                 </div>
                 <button className="action-btn secondary">Run Backup Now</button>
-              </div>
-              
-              <div className="dashboard-card error-logs">
-                <h3>Error Monitoring</h3>
-                <div className="error-summary">
-                  <div className="error-stat">
-                    <span className="error-count">12</span>
-                    <span className="error-label">Errors (24h)</span>
-                  </div>
-                  <div className="error-stat">
-                    <span className="error-count">3</span>
-                    <span className="error-label">Critical</span>
-                  </div>
-                  <div className="error-stat">
-                    <span className="error-count">99.8%</span>
-                    <span className="error-label">Uptime</span>
-                  </div>
-                </div>
-                <button className="action-btn secondary">View Full Logs</button>
               </div>
             </div>
           </div>
@@ -544,50 +872,53 @@ function AdminDashboard() {
               </div>
               
               <div className="dashboard-card settings-section">
+                <h3>🚨 Crisis Detection Settings</h3>
+                <div className="setting-item">
+                  <label>AI Crisis Detection</label>
+                  <div className="toggle-switch">
+                    <input type="checkbox" defaultChecked />
+                    <span className="toggle-slider"></span>
+                  </div>
+                </div>
+                <div className="setting-item">
+                  <label>Crisis Alert Email</label>
+                  <input type="email" defaultValue="crisis@kpu.ca" />
+                </div>
+                <div className="setting-item">
+                  <label>Emergency Response Team</label>
+                  <input type="email" defaultValue="emergency@kpu.ca" />
+                </div>
+                <div className="setting-item">
+                  <label>Auto-Escalation</label>
+                  <div className="toggle-switch">
+                    <input type="checkbox" defaultChecked />
+                    <span className="toggle-slider"></span>
+                  </div>
+                </div>
+                <button className="action-btn primary">Update Crisis Settings</button>
+              </div>
+              
+              <div className="dashboard-card settings-section">
                 <h3>🔐 Security Settings</h3>
                 <div className="setting-item">
                   <label>Two-Factor Authentication</label>
                   <div className="toggle-switch">
-                    <input type="checkbox" checked readOnly />
+                    <input type="checkbox" defaultChecked />
                     <span className="toggle-slider"></span>
                   </div>
                 </div>
                 <div className="setting-item">
                   <label>Session Timeout (minutes)</label>
-                  <input type="number" value="60" />
+                  <input type="number" defaultValue="60" />
                 </div>
                 <div className="setting-item">
-                  <label>Password Requirements</label>
-                  <select>
-                    <option>Strong (recommended)</option>
-                    <option>Medium</option>
-                    <option>Basic</option>
-                  </select>
+                  <label>Crisis Data Encryption</label>
+                  <div className="toggle-switch">
+                    <input type="checkbox" defaultChecked />
+                    <span className="toggle-slider"></span>
+                  </div>
                 </div>
                 <button className="action-btn primary">Update Security</button>
-              </div>
-              
-              <div className="dashboard-card settings-section">
-                <h3>📧 Notification Settings</h3>
-                <div className="setting-item">
-                  <label>Crisis Alert Email</label>
-                  <input type="email" value="crisis@kpu.ca" />
-                </div>
-                <div className="setting-item">
-                  <label>System Notifications</label>
-                  <div className="toggle-switch">
-                    <input type="checkbox" checked readOnly />
-                    <span className="toggle-slider"></span>
-                  </div>
-                </div>
-                <div className="setting-item">
-                  <label>Weekly Reports</label>
-                  <div className="toggle-switch">
-                    <input type="checkbox" checked readOnly />
-                    <span className="toggle-slider"></span>
-                  </div>
-                </div>
-                <button className="action-btn primary">Save Notifications</button>
               </div>
               
               <div className="dashboard-card settings-section danger-zone">
@@ -595,17 +926,17 @@ function AdminDashboard() {
                 <div className="danger-actions">
                   <div className="danger-item">
                     <div className="danger-info">
-                      <span className="danger-title">Export All Data</span>
-                      <span className="danger-description">Download complete platform data</span>
+                      <span className="danger-title">Export Crisis Data</span>
+                      <span className="danger-description">Download complete crisis detection logs</span>
                     </div>
                     <button className="action-btn secondary">Export</button>
                   </div>
                   <div className="danger-item">
                     <div className="danger-info">
-                      <span className="danger-title">Reset Platform</span>
-                      <span className="danger-description">Reset all settings to default</span>
+                      <span className="danger-title">Reset AI Model</span>
+                      <span className="danger-description">Reset crisis detection AI to default</span>
                     </div>
-                    <button className="action-btn emergency">Reset</button>
+                    <button className="action-btn emergency">Reset AI</button>
                   </div>
                 </div>
               </div>

@@ -16,6 +16,7 @@ function CounselorDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [crisisAlerts, setCrisisAlerts] = useState([]);
   const [resources, setResources] = useState([]);
+  const [crisisAnalytics, setCrisisAnalytics] = useState({});
 
   // Load dashboard data
   useEffect(() => {
@@ -23,6 +24,177 @@ function CounselorDashboard() {
   }, []);
 
   const loadDashboardData = () => {
+    // Enhanced crisis alerts with AI detection data
+    setCrisisAlerts([
+  {
+    id: 1,
+    student: 'Alex Johnson',
+    studentId: '100123456',
+    riskLevel: 9,
+    category: 'critical',
+    timestamp: '2025-08-02 16:59:04',
+    status: 'active',
+    text: 'I can\'t handle this anymore. Everything feels hopeless and I just want the pain to stop. Nobody would miss me anyway.',
+    aiAnalysis: {
+      keywords: ['can\'t handle', 'hopeless', 'want pain to stop', 'nobody would miss me'],
+      sentiment: 'critical_distress',
+      confidence: 94
+    },
+    counselorAssigned: 'Dr. Sarah Mitchell',
+    actionTaken: 'pending',
+    priority: 'critical'
+  },
+  {
+    id: 2,
+    student: 'Emma Chen',
+    studentId: '100234567',
+    riskLevel: 7,
+    category: 'high',
+    timestamp: '2025-08-02 14:30:22',
+    status: 'addressed',
+    text: 'I feel completely overwhelmed with midterms coming up. Having panic attacks daily and can\'t sleep. Starting to think about dropping out.',
+    aiAnalysis: {
+      keywords: ['completely overwhelmed', 'panic attacks', 'can\'t sleep', 'dropping out'],
+      sentiment: 'severe_stress',
+      confidence: 89
+    },
+    counselorAssigned: 'Dr. Sarah Mitchell',
+    actionTaken: 'appointment_scheduled',
+    priority: 'high'
+  },
+  {
+    id: 3,
+    student: 'Marcus Williams',
+    studentId: '100345679',
+    riskLevel: 8,
+    category: 'high',
+    timestamp: '2025-08-02 11:15:33',
+    status: 'monitoring',
+    text: 'Been having thoughts about ending everything. My family would be better off without me. I\'m just a burden to everyone.',
+    aiAnalysis: {
+      keywords: ['ending everything', 'better off without me', 'burden to everyone'],
+      sentiment: 'suicidal_ideation',
+      confidence: 96
+    },
+    counselorAssigned: 'Dr. James Chen',
+    actionTaken: 'emergency_contact_made',
+    priority: 'critical'
+  },
+  {
+    id: 4,
+    student: 'Priya Sharma',
+    studentId: '100456780',
+    riskLevel: 6,
+    category: 'medium',
+    timestamp: '2025-08-02 09:45:12',
+    status: 'addressed',
+    text: 'Really struggling with loneliness since moving away from home. Feel disconnected from everyone and constantly sad.',
+    aiAnalysis: {
+      keywords: ['struggling', 'loneliness', 'disconnected', 'constantly sad'],
+      sentiment: 'depressive_symptoms',
+      confidence: 78
+    },
+    counselorAssigned: 'Dr. Emily Thompson',
+    actionTaken: 'follow_up_scheduled',
+    priority: 'high'
+  },
+  {
+    id: 5,
+    student: 'Jordan Blake',
+    studentId: '100567891',
+    riskLevel: 8,
+    category: 'high',
+    timestamp: '2025-08-01 22:30:15',
+    status: 'resolved',
+    text: 'I hate myself so much. Cut myself again tonight. The voices in my head won\'t stop telling me I\'m worthless.',
+    aiAnalysis: {
+      keywords: ['hate myself', 'cut myself', 'voices in my head', 'worthless'],
+      sentiment: 'self_harm_psychosis',
+      confidence: 92
+    },
+    counselorAssigned: 'Dr. Sarah Mitchell',
+    actionTaken: 'emergency_intervention_completed',
+    priority: 'critical'
+  },
+  {
+    id: 6,
+    student: 'Taylor Kim',
+    studentId: '100678902',
+    riskLevel: 5,
+    category: 'medium',
+    timestamp: '2025-08-01 16:20:33',
+    status: 'addressed',
+    text: 'Feeling really anxious about my future. Sometimes wonder if things will ever get better. Having trouble eating.',
+    aiAnalysis: {
+      keywords: ['really anxious', 'wonder if things will get better', 'trouble eating'],
+      sentiment: 'anxiety_depression',
+      confidence: 71
+    },
+    counselorAssigned: 'Dr. Maria Rodriguez',
+    actionTaken: 'resource_package_sent',
+    priority: 'medium'
+  },
+  {
+    id: 7,
+    student: 'Sam Rodriguez',
+    studentId: '100789013',
+    riskLevel: 9,
+    category: 'critical',
+    timestamp: '2025-08-01 13:45:28',
+    status: 'resolved',
+    text: 'Made a plan to end my life tonight. Have everything ready. Just wanted to say goodbye to someone.',
+    aiAnalysis: {
+      keywords: ['plan to end my life', 'have everything ready', 'say goodbye'],
+      sentiment: 'imminent_suicide_risk',
+      confidence: 98
+    },
+    counselorAssigned: 'Dr. James Chen',
+    actionTaken: 'emergency_services_contacted',
+    priority: 'critical'
+  },
+  {
+    id: 8,
+    student: 'Aisha Patel',
+    studentId: '100890124',
+    riskLevel: 6,
+    category: 'medium',
+    timestamp: '2025-08-01 11:10:45',
+    status: 'monitoring',
+    text: 'Panic attacks are getting worse. Can\'t focus on anything. Starting to isolate myself from friends.',
+    aiAnalysis: {
+      keywords: ['panic attacks getting worse', 'can\'t focus', 'isolate myself'],
+      sentiment: 'escalating_anxiety',
+      confidence: 84
+    },
+    counselorAssigned: 'Dr. Emily Thompson',
+    actionTaken: 'weekly_check_ins_scheduled',
+    priority: 'high'
+  }
+]);
+
+// Enhanced crisis analytics data for more realistic presentation
+setCrisisAnalytics({
+  totalDetections: 47,
+  todayDetections: 8,
+  avgResponseTime: '8 minutes',
+  successfulInterventions: 96.2,
+  trendData: [
+    { date: '2025-07-26', low: 12, medium: 6, high: 4, critical: 1 },
+    { date: '2025-07-27', low: 15, medium: 4, high: 2, critical: 0 },
+    { date: '2025-07-28', low: 18, medium: 8, high: 3, critical: 2 },
+    { date: '2025-07-29', low: 14, medium: 7, high: 1, critical: 1 },
+    { date: '2025-07-30', low: 16, medium: 9, high: 4, critical: 1 },
+    { date: '2025-08-01', low: 20, medium: 11, high: 5, critical: 2 },
+    { date: '2025-08-02', low: 22, medium: 13, high: 6, critical: 3 }
+  ],
+  riskDistribution: {
+    low: 58,
+    medium: 28,
+    high: 11,
+    critical: 3
+  }
+});
+
     // Mock student cases
     setStudents([
       {
@@ -31,9 +203,11 @@ function CounselorDashboard() {
         studentId: '100123456',
         lastSession: '2025-06-28',
         nextSession: '2025-07-03',
-        priority: 'medium',
-        notes: 'Making good progress with anxiety management',
-        program: 'Computer Science'
+        priority: 'urgent',
+        notes: 'Recent crisis alert - requires immediate attention',
+        program: 'Computer Science',
+        riskLevel: 8,
+        totalSessions: 12
       },
       {
         id: 2,
@@ -42,8 +216,10 @@ function CounselorDashboard() {
         lastSession: '2025-06-30',
         nextSession: '2025-07-05',
         priority: 'high',
-        notes: 'Requires follow-up on stress management techniques',
-        program: 'Business Administration'
+        notes: 'Follow-up on stress management - showing improvement',
+        program: 'Business Administration',
+        riskLevel: 6,
+        totalSessions: 8
       },
       {
         id: 3,
@@ -53,7 +229,9 @@ function CounselorDashboard() {
         nextSession: '2025-07-02',
         priority: 'low',
         notes: 'Stable progress, monthly check-ins',
-        program: 'Engineering'
+        program: 'Engineering',
+        riskLevel: 2,
+        totalSessions: 15
       }
     ]);
 
@@ -62,56 +240,38 @@ function CounselorDashboard() {
       {
         id: 1,
         student: 'Alex Johnson',
+        studentId: '100123456',
         date: '2025-07-03',
         time: '2:00 PM',
-        type: 'Individual Session',
+        type: 'Crisis Intervention',
         duration: '50 minutes',
-        status: 'confirmed',
-        notes: 'Follow-up on coping strategies'
+        status: 'urgent',
+        notes: 'Emergency session - high risk assessment',
+        riskLevel: 8
       },
       {
         id: 2,
         student: 'Emma Chen',
+        studentId: '100234567',
         date: '2025-07-03',
         time: '3:30 PM',
-        type: 'Crisis Intervention',
+        type: 'Follow-up Session',
         duration: '30 minutes',
-        status: 'urgent',
-        notes: 'Immediate support needed'
+        status: 'confirmed',
+        notes: 'Progress review and coping strategies',
+        riskLevel: 6
       },
       {
         id: 3,
         student: 'Marcus Williams',
+        studentId: '100345678',
         date: '2025-07-02',
         time: '10:00 AM',
-        type: 'Group Therapy Prep',
+        type: 'Regular Check-in',
         duration: '30 minutes',
         status: 'confirmed',
-        notes: 'Prepare for group session'
-      }
-    ]);
-
-    // Mock crisis alerts
-    setCrisisAlerts([
-      {
-        id: 1,
-        student: 'Emma Chen',
-        type: 'High Risk Assessment',
-        timestamp: '2025-07-01 14:30',
-        severity: 'high',
-        description: 'Student indicated thoughts of self-harm in mood tracker',
-        status: 'active',
-        action: 'Schedule immediate intervention'
-      },
-      {
-        id: 2,
-        student: 'Jamie Taylor',
-        type: 'Missed Critical Appointment',
-        timestamp: '2025-07-01 10:00',
-        severity: 'medium',
-        description: 'No-show for scheduled crisis follow-up',
-        status: 'pending',
-        action: 'Contact student immediately'
+        notes: 'Monthly wellness check',
+        riskLevel: 2
       }
     ]);
 
@@ -128,20 +288,30 @@ function CounselorDashboard() {
 
   const getPriorityColor = (priority) => {
     const colors = {
-      high: '#f56565',
-      medium: '#ed8936', 
+      critical: '#e53e3e',
+      urgent: '#e53e3e',
+      high: '#d69e2e', 
+      medium: '#ecc94b',
       low: '#48bb78'
     };
     return colors[priority] || '#718096';
   };
 
-  const getSeverityColor = (severity) => {
-    const colors = {
-      high: '#f56565',
-      medium: '#ed8936',
-      low: '#48bb78'
+  const getRiskColor = (level) => {
+    if (level >= 9) return '#e53e3e'; // Critical - Red
+    if (level >= 7) return '#d69e2e'; // High - Orange  
+    if (level >= 5) return '#ecc94b'; // Medium - Yellow
+    return '#48bb78'; // Low - Green
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      active: { color: '#e53e3e', text: 'Needs Attention', icon: '🚨' },
+      addressed: { color: '#d69e2e', text: 'In Progress', icon: '⏳' },
+      monitoring: { color: '#4299e1', text: 'Monitoring', icon: '👁️' },
+      resolved: { color: '#48bb78', text: 'Resolved', icon: '✅' }
     };
-    return colors[severity] || '#718096';
+    return statusConfig[status] || statusConfig.active;
   };
 
   return (
@@ -192,7 +362,7 @@ function CounselorDashboard() {
             className={`nav-tab ${selectedTab === 'crisis' ? 'active' : ''}`}
             onClick={() => setSelectedTab('crisis')}
           >
-            🚨 Crisis Alerts
+            🚨 Crisis Analytics
           </button>
           <button 
             className={`nav-tab ${selectedTab === 'resources' ? 'active' : ''}`}
@@ -224,26 +394,37 @@ function CounselorDashboard() {
                     <span className="stat-label">Active Cases</span>
                   </div>
                   <div className="stat-item urgent">
-                    <span className="stat-number">2</span>
-                    <span className="stat-label">Crisis Alerts</span>
+                    <span className="stat-number">{crisisAnalytics.todayDetections}</span>
+                    <span className="stat-label">Crisis Alerts Today</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-number">8</span>
-                    <span className="stat-label">This Week's Sessions</span>
+                    <span className="stat-number">{crisisAnalytics.avgResponseTime}</span>
+                    <span className="stat-label">Avg Response Time</span>
                   </div>
                 </div>
               </div>
 
               {/* Urgent Actions */}
               <div className="dashboard-card urgent-actions">
-                <h3>Urgent Actions Required</h3>
+                <h3>🚨 Urgent Crisis Alerts</h3>
                 <div className="urgent-list">
                   {crisisAlerts.filter(alert => alert.status === 'active').map(alert => (
-                    <div key={alert.id} className="urgent-item">
+                    <div key={alert.id} className="urgent-item crisis-urgent">
                       <div className="urgent-info">
-                        <span className="urgent-type">{alert.type}</span>
-                        <span className="urgent-student">{alert.student}</span>
-                        <span className="urgent-time">{alert.timestamp}</span>
+                        <div className="crisis-header-mini">
+                          <div 
+                            className="risk-indicator-mini" 
+                            style={{ backgroundColor: getRiskColor(alert.riskLevel) }}
+                          >
+                            {alert.riskLevel}
+                          </div>
+                          <div className="urgent-details">
+                            <span className="urgent-student">{alert.student}</span>
+                            <span className="urgent-type">AI Risk: {alert.category}</span>
+                            <span className="urgent-time">{alert.timestamp}</span>
+                          </div>
+                        </div>
+                        <div className="crisis-text-mini">"{alert.text}"</div>
                       </div>
                       <button className="action-btn emergency small">
                         Address Now
@@ -251,6 +432,12 @@ function CounselorDashboard() {
                     </div>
                   ))}
                 </div>
+                <button 
+                  className="view-all-btn"
+                  onClick={() => setSelectedTab('crisis')}
+                >
+                  View Crisis Analytics
+                </button>
               </div>
 
               {/* Today's Schedule */}
@@ -263,6 +450,11 @@ function CounselorDashboard() {
                       <div className="schedule-details">
                         <span className="schedule-student">{appointment.student}</span>
                         <span className="schedule-type">{appointment.type}</span>
+                        {appointment.riskLevel >= 7 && (
+                          <span className="risk-badge" style={{ backgroundColor: getRiskColor(appointment.riskLevel) }}>
+                            Risk: {appointment.riskLevel}
+                          </span>
+                        )}
                       </div>
                       <span className={`appointment-status ${appointment.status}`}>
                         {appointment.status}
@@ -278,29 +470,39 @@ function CounselorDashboard() {
                 </button>
               </div>
 
-              {/* Recent Case Updates */}
-              <div className="dashboard-card case-updates">
-                <h3>Recent Case Updates</h3>
-                <div className="case-list">
-                  {students.slice(0, 3).map(student => (
-                    <div key={student.id} className="case-item">
-                      <div className="case-info">
-                        <span className="case-name">{student.name}</span>
-                        <span className="case-program">{student.program}</span>
-                        <span className="case-note">{student.notes}</span>
+              {/* Crisis Analytics Preview */}
+              <div className="dashboard-card crisis-analytics-preview">
+                <h3>Crisis Detection Analytics</h3>
+                <div className="analytics-summary">
+                  <div className="analytics-stat">
+                    <span className="analytics-number">{crisisAnalytics.successfulInterventions}%</span>
+                    <span className="analytics-label">Success Rate</span>
+                  </div>
+                  <div className="analytics-stat">
+                    <span className="analytics-number">{crisisAnalytics.totalDetections}</span>
+                    <span className="analytics-label">This Week</span>
+                  </div>
+                </div>
+                <div className="risk-distribution-mini">
+                  <h4>Risk Distribution</h4>
+                  {Object.entries(crisisAnalytics.riskDistribution || {}).map(([level, percentage]) => (
+                    <div key={level} className="risk-bar-mini">
+                      <span className="risk-label-mini">{level}</span>
+                      <div className="risk-bar-container">
+                        <div 
+                          className={`risk-bar-fill ${level}`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
                       </div>
-                      <div 
-                        className="priority-indicator"
-                        style={{ backgroundColor: getPriorityColor(student.priority) }}
-                      ></div>
+                      <span className="risk-percentage">{percentage}%</span>
                     </div>
                   ))}
                 </div>
                 <button 
                   className="view-all-btn"
-                  onClick={() => setSelectedTab('students')}
+                  onClick={() => setSelectedTab('crisis')}
                 >
-                  View All Cases
+                  View Full Analytics
                 </button>
               </div>
             </div>
@@ -326,11 +528,19 @@ function CounselorDashboard() {
                       <span className="student-id">ID: {student.studentId}</span>
                       <span className="student-program">{student.program}</span>
                     </div>
-                    <div 
-                      className="priority-badge"
-                      style={{ backgroundColor: getPriorityColor(student.priority) }}
-                    >
-                      {student.priority} priority
+                    <div className="student-badges">
+                      <div 
+                        className="priority-badge"
+                        style={{ backgroundColor: getPriorityColor(student.priority) }}
+                      >
+                        {student.priority}
+                      </div>
+                      <div 
+                        className="risk-badge-student"
+                        style={{ backgroundColor: getRiskColor(student.riskLevel) }}
+                      >
+                        Risk: {student.riskLevel}
+                      </div>
                     </div>
                   </div>
                   
@@ -342,6 +552,10 @@ function CounselorDashboard() {
                     <div className="detail-item">
                       <span className="detail-label">Next Session:</span>
                       <span className="detail-value">{student.nextSession}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Total Sessions:</span>
+                      <span className="detail-value">{student.totalSessions}</span>
                     </div>
                     <div className="detail-item">
                       <span className="detail-label">Notes:</span>
@@ -374,12 +588,22 @@ function CounselorDashboard() {
               {appointments.map(appointment => (
                 <div key={appointment.id} className="appointment-card">
                   <div className="appointment-details">
-                    <h4>{appointment.type}</h4>
+                    <div className="appointment-header">
+                      <h4>{appointment.type}</h4>
+                      {appointment.riskLevel >= 7 && (
+                        <div 
+                          className="risk-indicator-appointment"
+                          style={{ backgroundColor: getRiskColor(appointment.riskLevel) }}
+                        >
+                          Risk {appointment.riskLevel}
+                        </div>
+                      )}
+                    </div>
                     <p className="appointment-datetime">
                       📅 {appointment.date} at {appointment.time}
                     </p>
                     <p className="appointment-student">
-                      👤 {appointment.student}
+                      👤 {appointment.student} (ID: {appointment.studentId})
                     </p>
                     <p className="appointment-duration">
                       ⏱️ Duration: {appointment.duration}
@@ -403,50 +627,229 @@ function CounselorDashboard() {
           </div>
         )}
 
-        {/* Crisis Alerts Tab */}
+        {/* Crisis Analytics Tab - Enhanced */}
         {selectedTab === 'crisis' && (
-          <div className="crisis-content">
-            <div className="crisis-header">
-              <h2>Crisis Management Dashboard</h2>
-              <div className="crisis-stats">
-                <span className="crisis-stat active">
-                  {crisisAlerts.filter(alert => alert.status === 'active').length} Active Alerts
-                </span>
-                <span className="crisis-stat pending">
-                  {crisisAlerts.filter(alert => alert.status === 'pending').length} Pending Review
-                </span>
+          <div className="crisis-analytics-content">
+            {/* Crisis Analytics Header */}
+            <div className="crisis-analytics-header">
+              <h2>🚨 AI-Powered Crisis Detection & Analytics</h2>
+              <div className="crisis-stats-header">
+                <div className="crisis-stat-item">
+                  <span className="crisis-stat-number">{crisisAlerts.filter(alert => alert.status === 'active').length}</span>
+                  <span className="crisis-stat-label">Active Alerts</span>
+                </div>
+                <div className="crisis-stat-item">
+                  <span className="crisis-stat-number">{crisisAnalytics.todayDetections}</span>
+                  <span className="crisis-stat-label">Today's Detections</span>
+                </div>
+                <div className="crisis-stat-item">
+                  <span className="crisis-stat-number">{crisisAnalytics.avgResponseTime}</span>
+                  <span className="crisis-stat-label">Avg Response</span>
+                </div>
+                <div className="crisis-stat-item">
+                  <span className="crisis-stat-number">{crisisAnalytics.successfulInterventions}%</span>
+                  <span className="crisis-stat-label">Success Rate</span>
+                </div>
               </div>
             </div>
-            
-            <div className="crisis-list">
-              {crisisAlerts.map(alert => (
-                <div key={alert.id} className={`crisis-card ${alert.severity}`}>
-                  <div className="crisis-info">
-                    <div className="crisis-main">
-                      <h4>{alert.type}</h4>
-                      <span className="crisis-student">Student: {alert.student}</span>
-                      <span className="crisis-time">⏰ {alert.timestamp}</span>
+
+            <div className="crisis-analytics-grid">
+              {/* Active Crisis Alerts */}
+              <div className="crisis-alerts-section">
+                <div className="section-header">
+                  <h3>🚨 Active Crisis Alerts</h3>
+                  <span className="alert-count">{crisisAlerts.filter(alert => alert.status === 'active').length} Active</span>
+                </div>
+                
+                <div className="crisis-alerts-list">
+                  {crisisAlerts.map(alert => {
+                    const status = getStatusBadge(alert.status);
+                    return (
+                      <div key={alert.id} className={`crisis-alert-card ${alert.status}`}>
+                        <div className="alert-header">
+                          <div className="alert-student">
+                            <div 
+                              className="risk-indicator" 
+                              style={{ backgroundColor: getRiskColor(alert.riskLevel) }}
+                            >
+                              {alert.riskLevel}
+                            </div>
+                            <div className="student-info">
+                              <h4>{alert.student}</h4>
+                              <p>ID: {alert.studentId}</p>
+                              <p>{new Date(alert.timestamp).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="alert-status">
+                            <span className="status-badge" style={{ backgroundColor: status.color }}>
+                              {status.icon} {status.text}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="alert-content">
+                          <div className="crisis-text">
+                            <strong>Student Text:</strong> "{alert.text}"
+                          </div>
+                          <div className="ai-analysis">
+                            <strong>AI Analysis:</strong>
+                            <span className="ai-details">
+                              Keywords: {alert.aiAnalysis.keywords.join(', ')} | 
+                              Confidence: {alert.aiAnalysis.confidence}% | 
+                              Category: {alert.category}
+                            </span>
+                          </div>
+                          <div className="alert-details">
+                            <span className="assigned-counselor">
+                              👤 {alert.counselorAssigned}
+                            </span>
+                            <span className="action-taken">
+                              📋 {alert.actionTaken.replace('_', ' ').toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {alert.status === 'active' && (
+                          <div className="alert-actions">
+                            <button className="action-btn emergency">📞 Contact Student</button>
+                            <button className="action-btn primary">📅 Schedule Emergency Session</button>
+                            <button className="action-btn secondary">🚨 Escalate to Emergency</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Crisis Analytics Charts */}
+              <div className="crisis-charts-section">
+                {/* Crisis Trend Chart */}
+                <div className="chart-card">
+                  <h3>📈 Crisis Detection Trends (Last 7 Days)</h3>
+                  <div className="trend-chart">
+                    <div className="chart-legend">
+                      <span className="legend-item low">🟢 Low Risk</span>
+                      <span className="legend-item medium">🟡 Medium Risk</span>
+                      <span className="legend-item high">🟠 High Risk</span>
+                      <span className="legend-item critical">🔴 Critical</span>
                     </div>
-                    <div className="crisis-description">
-                      <p>{alert.description}</p>
-                      <p className="crisis-action">🎯 Action: {alert.action}</p>
-                    </div>
-                  </div>
-                  <div className="crisis-controls">
-                    <div 
-                      className="severity-indicator"
-                      style={{ backgroundColor: getSeverityColor(alert.severity) }}
-                    >
-                      {alert.severity} risk
-                    </div>
-                    <div className="crisis-buttons">
-                      <button className="action-btn emergency">Address</button>
-                      <button className="action-btn secondary">Escalate</button>
-                      <button className="action-btn secondary">Notes</button>
+                    <div className="chart-bars">
+                      {crisisAnalytics.trendData?.map((day, index) => (
+                        <div key={index} className="chart-day">
+                          <div className="chart-bar">
+                            <div 
+                              className="bar-segment critical" 
+                              style={{ height: `${day.critical * 20}px` }}
+                              title={`Critical: ${day.critical}`}
+                            ></div>
+                            <div 
+                              className="bar-segment high" 
+                              style={{ height: `${day.high * 15}px` }}
+                              title={`High: ${day.high}`}
+                            ></div>
+                            <div 
+                              className="bar-segment medium" 
+                              style={{ height: `${day.medium * 8}px` }}
+                              title={`Medium: ${day.medium}`}
+                            ></div>
+                            <div 
+                              className="bar-segment low" 
+                              style={{ height: `${day.low * 3}px` }}
+                              title={`Low: ${day.low}`}
+                            ></div>
+                          </div>
+                          <div className="chart-label">{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-              ))}
+
+                {/* Risk Distribution */}
+                <div className="chart-card">
+                  <h3>🎯 Risk Level Distribution</h3>
+                  <div className="distribution-chart">
+                    {Object.entries(crisisAnalytics.riskDistribution || {}).map(([level, percentage]) => (
+                      <div key={level} className="distribution-item">
+                        <div className="distribution-label">
+                          <span className={`risk-dot ${level}`}></span>
+                          {level.charAt(0).toUpperCase() + level.slice(1)} Risk
+                        </div>
+                        <div className="distribution-bar">
+                          <div 
+                            className={`distribution-fill ${level}`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <div className="distribution-value">{percentage}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* AI Detection Insights */}
+                <div className="chart-card">
+                  <h3>🤖 AI Detection Insights</h3>
+                  <div className="ai-insights">
+                    <div className="insight-item">
+                      <div className="insight-icon">🎯</div>
+                      <div className="insight-details">
+                        <h4>94.7% Accuracy</h4>
+                        <p>AI detection confidence rate</p>
+                      </div>
+                    </div>
+                    <div className="insight-item">
+                      <div className="insight-icon">⚡</div>
+                      <div className="insight-details">
+                        <h4>Real-time</h4>
+                        <p>Instant crisis analysis</p>
+                      </div>
+                    </div>
+                    <div className="insight-item">
+                      <div className="insight-icon">🛡️</div>
+                      <div className="insight-details">
+                        <h4>Privacy Protected</h4>
+                        <p>PIPEDA compliant analysis</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Crisis Response Protocols */}
+            <div className="protocols-section">
+              <h3>📋 Crisis Response Protocols</h3>
+              <div className="protocols-grid">
+                <div className="protocol-card critical">
+                  <h4>🚨 Critical Risk (9-10)</h4>
+                  <ul>
+                    <li>Immediate counselor notification</li>
+                    <li>Emergency contact within 30 minutes</li>
+                    <li>Campus security alert if needed</li>
+                    <li>Family notification protocol</li>
+                  </ul>
+                </div>
+                <div className="protocol-card high">
+                  <h4>⚠️ High Risk (7-8)</h4>
+                  <ul>
+                    <li>Counselor notification within 2 hours</li>
+                    <li>Same-day appointment scheduling</li>
+                    <li>Follow-up check within 24 hours</li>
+                    <li>Peer support activation</li>
+                  </ul>
+                </div>
+                <div className="protocol-card medium">
+                  <h4>💛 Medium Risk (5-6)</h4>
+                  <ul>
+                    <li>Resource recommendations sent</li>
+                    <li>Appointment offered within 48 hours</li>
+                    <li>Self-help tools provided</li>
+                    <li>Weekly check-in scheduled</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -463,13 +866,13 @@ function CounselorDashboard() {
             
             <div className="resources-grid">
               {resources.map(resource => (
-                <div key={resource.id} className={`resource-card ${resource.urgency}`}>
+                <div key={resource.id} className={`resource-card ${resource.urgency_level}`}>
                   <div className="resource-header">
                     <h4>{resource.title}</h4>
-                    <span className={`urgency-badge ${resource.urgency}`}>
-                      {resource.urgency === 'high' && '🚨 Critical'}
-                      {resource.urgency === 'medium' && '⚡ Important'}
-                      {resource.urgency === 'low' && '💡 Helpful'}
+                    <span className={`urgency-badge ${resource.urgency_level}`}>
+                      {resource.urgency_level === 'high' && '🚨 Critical'}
+                      {resource.urgency_level === 'medium' && '⚡ Important'}
+                      {resource.urgency_level === 'low' && '💡 Helpful'}
                     </span>
                   </div>
                   <div className="resource-category">{resource.category}</div>
