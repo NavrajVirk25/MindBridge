@@ -23,154 +23,117 @@ function CounselorDashboard() {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
-    // Enhanced crisis alerts with AI detection data
-    setCrisisAlerts([
-  {
-    id: 1,
-    student: 'Alex Johnson',
-    studentId: '100123456',
-    riskLevel: 9,
-    category: 'critical',
-    timestamp: '2025-08-02 16:59:04',
-    status: 'active',
-    text: 'I can\'t handle this anymore. Everything feels hopeless and I just want the pain to stop. Nobody would miss me anyway.',
-    aiAnalysis: {
-      keywords: ['can\'t handle', 'hopeless', 'want pain to stop', 'nobody would miss me'],
-      sentiment: 'critical_distress',
-      confidence: 94
-    },
-    counselorAssigned: 'Dr. Sarah Mitchell',
-    actionTaken: 'pending',
-    priority: 'critical'
-  },
-  {
-    id: 2,
-    student: 'Emma Chen',
-    studentId: '100234567',
-    riskLevel: 7,
-    category: 'high',
-    timestamp: '2025-08-02 14:30:22',
-    status: 'addressed',
-    text: 'I feel completely overwhelmed with midterms coming up. Having panic attacks daily and can\'t sleep. Starting to think about dropping out.',
-    aiAnalysis: {
-      keywords: ['completely overwhelmed', 'panic attacks', 'can\'t sleep', 'dropping out'],
-      sentiment: 'severe_stress',
-      confidence: 89
-    },
-    counselorAssigned: 'Dr. Sarah Mitchell',
-    actionTaken: 'appointment_scheduled',
-    priority: 'high'
-  },
-  {
-    id: 3,
-    student: 'Marcus Williams',
-    studentId: '100345679',
-    riskLevel: 8,
-    category: 'high',
-    timestamp: '2025-08-02 11:15:33',
-    status: 'monitoring',
-    text: 'Been having thoughts about ending everything. My family would be better off without me. I\'m just a burden to everyone.',
-    aiAnalysis: {
-      keywords: ['ending everything', 'better off without me', 'burden to everyone'],
-      sentiment: 'suicidal_ideation',
-      confidence: 96
-    },
-    counselorAssigned: 'Dr. James Chen',
-    actionTaken: 'emergency_contact_made',
-    priority: 'critical'
-  },
-  {
-    id: 4,
-    student: 'Priya Sharma',
-    studentId: '100456780',
-    riskLevel: 6,
-    category: 'medium',
-    timestamp: '2025-08-02 09:45:12',
-    status: 'addressed',
-    text: 'Really struggling with loneliness since moving away from home. Feel disconnected from everyone and constantly sad.',
-    aiAnalysis: {
-      keywords: ['struggling', 'loneliness', 'disconnected', 'constantly sad'],
-      sentiment: 'depressive_symptoms',
-      confidence: 78
-    },
-    counselorAssigned: 'Dr. Emily Thompson',
-    actionTaken: 'follow_up_scheduled',
-    priority: 'high'
-  },
-  {
-    id: 5,
-    student: 'Jordan Blake',
-    studentId: '100567891',
-    riskLevel: 8,
-    category: 'high',
-    timestamp: '2025-08-01 22:30:15',
-    status: 'resolved',
-    text: 'I hate myself so much. Cut myself again tonight. The voices in my head won\'t stop telling me I\'m worthless.',
-    aiAnalysis: {
-      keywords: ['hate myself', 'cut myself', 'voices in my head', 'worthless'],
-      sentiment: 'self_harm_psychosis',
-      confidence: 92
-    },
-    counselorAssigned: 'Dr. Sarah Mitchell',
-    actionTaken: 'emergency_intervention_completed',
-    priority: 'critical'
-  },
-  {
-    id: 6,
-    student: 'Taylor Kim',
-    studentId: '100678902',
-    riskLevel: 5,
-    category: 'medium',
-    timestamp: '2025-08-01 16:20:33',
-    status: 'addressed',
-    text: 'Feeling really anxious about my future. Sometimes wonder if things will ever get better. Having trouble eating.',
-    aiAnalysis: {
-      keywords: ['really anxious', 'wonder if things will get better', 'trouble eating'],
-      sentiment: 'anxiety_depression',
-      confidence: 71
-    },
-    counselorAssigned: 'Dr. Maria Rodriguez',
-    actionTaken: 'resource_package_sent',
-    priority: 'medium'
-  },
-  {
-    id: 7,
-    student: 'Sam Rodriguez',
-    studentId: '100789013',
-    riskLevel: 9,
-    category: 'critical',
-    timestamp: '2025-08-01 13:45:28',
-    status: 'resolved',
-    text: 'Made a plan to end my life tonight. Have everything ready. Just wanted to say goodbye to someone.',
-    aiAnalysis: {
-      keywords: ['plan to end my life', 'have everything ready', 'say goodbye'],
-      sentiment: 'imminent_suicide_risk',
-      confidence: 98
-    },
-    counselorAssigned: 'Dr. James Chen',
-    actionTaken: 'emergency_services_contacted',
-    priority: 'critical'
-  },
-  {
-    id: 8,
-    student: 'Aisha Patel',
-    studentId: '100890124',
-    riskLevel: 6,
-    category: 'medium',
-    timestamp: '2025-08-01 11:10:45',
-    status: 'monitoring',
-    text: 'Panic attacks are getting worse. Can\'t focus on anything. Starting to isolate myself from friends.',
-    aiAnalysis: {
-      keywords: ['panic attacks getting worse', 'can\'t focus', 'isolate myself'],
-      sentiment: 'escalating_anxiety',
-      confidence: 84
-    },
-    counselorAssigned: 'Dr. Emily Thompson',
-    actionTaken: 'weekly_check_ins_scheduled',
-    priority: 'high'
+  const loadDashboardData = async () => {
+  try {
+    // Fetch real crisis alerts from API
+    const alertsResponse = await fetch('http://localhost:5000/api/crisis/alerts');
+    const alertsData = await alertsResponse.json();
+    
+    if (alertsData.success) {
+      setCrisisAlerts(alertsData.data);
+    }
+    
+    // Fetch real crisis analytics from API
+    const analyticsResponse = await fetch('http://localhost:5000/api/crisis/analytics');
+    const analyticsData = await analyticsResponse.json();
+    
+    if (analyticsData.success) {
+      setCrisisAnalytics(analyticsData.data);
+    }
+    
+    // Keep existing mock data for students and appointments (for now)
+    setStudents([
+      {
+        id: 1,
+        name: 'Alex Johnson',
+        studentId: '100123456',
+        lastSession: '2025-06-28',
+        nextSession: '2025-07-03',
+        priority: 'urgent',
+        notes: 'Recent crisis alert - requires immediate attention',
+        program: 'Computer Science',
+        riskLevel: 8,
+        totalSessions: 12
+      },
+      {
+        id: 2,
+        name: 'Emma Chen',
+        studentId: '100234567',
+        lastSession: '2025-06-30',
+        nextSession: '2025-07-05',
+        priority: 'high',
+        notes: 'Follow-up on stress management - showing improvement',
+        program: 'Business Administration',
+        riskLevel: 6,
+        totalSessions: 8
+      },
+      {
+        id: 3,
+        name: 'Marcus Williams',
+        studentId: '100345678',
+        lastSession: '2025-06-25',
+        nextSession: '2025-07-02',
+        priority: 'low',
+        notes: 'Stable progress, monthly check-ins',
+        program: 'Engineering',
+        riskLevel: 2,
+        totalSessions: 15
+      }
+    ]);
+
+    setAppointments([
+      {
+        id: 1,
+        student: 'Alex Johnson',
+        studentId: '100123456',
+        date: '2025-07-03',
+        time: '2:00 PM',
+        type: 'Crisis Intervention',
+        duration: '50 minutes',
+        status: 'urgent',
+        notes: 'Emergency session - high risk assessment',
+        riskLevel: 8
+      },
+      {
+        id: 2,
+        student: 'Emma Chen',
+        studentId: '100234567',
+        date: '2025-07-03',
+        time: '3:30 PM',
+        type: 'Follow-up Session',
+        duration: '30 minutes',
+        status: 'confirmed',
+        notes: 'Progress review and coping strategies',
+        riskLevel: 6
+      },
+      {
+        id: 3,
+        student: 'Marcus Williams',
+        studentId: '100345678',
+        date: '2025-07-02',
+        time: '10:00 AM',
+        type: 'Regular Check-in',
+        duration: '30 minutes',
+        status: 'confirmed',
+        notes: 'Monthly wellness check',
+        riskLevel: 2
+      }
+    ]);
+
+    // Load resources from backend (existing code)
+    const resourcesResponse = await fetch('http://localhost:5000/api/resources');
+    const resourcesData = await resourcesResponse.json();
+    if (resourcesData.success) {
+      setResources(resourcesData.data);
+    }
+    
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+    // Fallback to empty arrays if API calls fail
+    setCrisisAlerts([]);
+    setCrisisAnalytics({});
   }
-]);
+;
 
 // Enhanced crisis analytics data for more realistic presentation
 setCrisisAnalytics({
