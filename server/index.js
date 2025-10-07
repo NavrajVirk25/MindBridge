@@ -3,8 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const pool = require('./db'); // Import our database connection
 require('dotenv').config();
+const pool = require('./db'); // Import our database connection
+
 
 // Create Express application
 const app = express();
