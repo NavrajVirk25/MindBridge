@@ -23,57 +23,47 @@ function AdminDashboard() {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = () => {
-    // Enhanced platform statistics with crisis data
-    setPlatformStats({
-      totalUsers: 2847,
-      activeStudents: 2341,
-      activeCounselors: 45,
-      monthlyGrowth: 12.5,
-      totalSessions: 15623,
-      resourcesAccessed: 8934,
-      crisisInterventions: 23,
-      userSatisfaction: 4.7,
-      // New crisis metrics
-      crisisDetections: 89,
-      successfulInterventions: 94.7,
-      avgResponseTime: 12,
-      criticalAlerts: 5,
-      systemUptime: 99.8
-    });
+  const loadDashboardData = async () => {
+  try {
+    // Fetch real crisis statistics from API
+    const crisisStatsResponse = await fetch('http://localhost:5000/api/admin/crisis/statistics');
+    const crisisStatsData = await crisisStatsResponse.json();
+    
+    // Fetch real platform statistics from API  
+    const platformStatsResponse = await fetch('http://localhost:5000/api/admin/platform/statistics');
+    const platformStatsData = await platformStatsResponse.json();
+    
+    if (crisisStatsData.success && platformStatsData.success) {
+      // Combine platform stats with crisis data
+      setPlatformStats({
+        ...platformStatsData.data,
+        crisisDetections: crisisStatsData.data.totalDetections,
+        successfulInterventions: crisisStatsData.data.successfulInterventions,
+        avgResponseTime: parseInt(crisisStatsData.data.avgResponseTime),
+        criticalAlerts: crisisStatsData.data.activeAlerts
+      });
+      
+      // Set crisis management data
+      setCrisisManagement({
+        totalDetections: crisisStatsData.data.totalDetections,
+        activeAlerts: crisisStatsData.data.activeAlerts,
+        resolvedToday: crisisStatsData.data.resolvedToday,
+        avgResponseTime: crisisStatsData.data.avgResponseTime,
+        counselorResponseRate: crisisStatsData.data.counselorResponseRate,
+        emergencyEscalations: crisisStatsData.data.emergencyEscalations,
+        riskDistribution: crisisStatsData.data.riskDistribution,
+        trendData: crisisStatsData.data.trendData,
+        // Keep mock counselor workload for now
+        counselorWorkload: [
+          { name: 'Dr. Sarah Mitchell', activeCases: 12, crisisAlerts: 3, responseTime: '8 min' },
+          { name: 'Dr. James Chen', activeCases: 15, crisisAlerts: 2, responseTime: '12 min' },
+          { name: 'Dr. Maria Rodriguez', activeCases: 10, crisisAlerts: 1, responseTime: '15 min' },
+          { name: 'Dr. Emily Thompson', activeCases: 8, crisisAlerts: 2, responseTime: '10 min' }
+        ]
+      });
+    }
 
-    // Crisis management data
-    setCrisisManagement({
-      totalDetections: 89,
-      activeAlerts: 4,
-      resolvedToday: 7,
-      avgResponseTime: '12 minutes',
-      counselorResponseRate: 98.5,
-      emergencyEscalations: 3,
-      riskDistribution: {
-        critical: 5,
-        high: 15,
-        medium: 35,
-        low: 34
-      },
-      trendData: [
-        { date: '2025-07-26', total: 12, critical: 1, high: 3, medium: 5, low: 3 },
-        { date: '2025-07-27', total: 8, critical: 0, high: 2, medium: 3, low: 3 },
-        { date: '2025-07-28', total: 15, critical: 2, high: 4, medium: 6, low: 3 },
-        { date: '2025-07-29', total: 10, critical: 0, high: 2, medium: 4, low: 4 },
-        { date: '2025-07-30', total: 18, critical: 1, high: 5, medium: 7, low: 5 },
-        { date: '2025-08-01', total: 13, critical: 1, high: 3, medium: 5, low: 4 },
-        { date: '2025-08-02', total: 13, critical: 0, high: 2, medium: 5, low: 6 }
-      ],
-      counselorWorkload: [
-        { name: 'Dr. Sarah Mitchell', activeCases: 12, crisisAlerts: 3, responseTime: '8 min' },
-        { name: 'Dr. James Chen', activeCases: 15, crisisAlerts: 2, responseTime: '12 min' },
-        { name: 'Dr. Maria Rodriguez', activeCases: 10, crisisAlerts: 1, responseTime: '15 min' },
-        { name: 'Dr. Emily Thompson', activeCases: 8, crisisAlerts: 2, responseTime: '10 min' }
-      ]
-    });
-
-    // Enhanced user data with risk indicators
+    // Keep existing mock data for users and system health (for now)
     setUsers([
       {
         id: 1,
@@ -125,7 +115,6 @@ function AdminDashboard() {
       }
     ]);
 
-    // Enhanced system health with crisis monitoring
     setSystemHealth({
       serverStatus: 'healthy',
       apiResponseTime: 245,
@@ -138,7 +127,6 @@ function AdminDashboard() {
       alertDeliveryRate: 99.2
     });
 
-    // Enhanced recent activity with crisis events
     setRecentActivity([
       {
         id: 1,
@@ -163,25 +151,16 @@ function AdminDashboard() {
         timestamp: '2025-08-02 12:15',
         severity: 'info',
         details: 'Account verified and activated'
-      },
-      {
-        id: 4,
-        type: 'system_update',
-        description: 'Crisis detection AI model updated to v2.4.1',
-        timestamp: '2025-08-02 10:00',
-        severity: 'info',
-        details: 'Improved accuracy by 3.2%'
-      },
-      {
-        id: 5,
-        type: 'counselor_added',
-        description: 'New counselor verified: Dr. Lisa Thompson',
-        timestamp: '2025-08-01 15:30',
-        severity: 'info',
-        details: 'Crisis response training completed'
       }
     ]);
-  };
+    
+  } catch (error) {
+    console.error('Error loading admin dashboard data:', error);
+    // Fallback to empty data if API calls fail
+    setPlatformStats({});
+    setCrisisManagement({});
+  }
+};
 
   const handleLogout = () => {
     navigate('/');

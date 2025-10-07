@@ -30,7 +30,9 @@ function StudentDashboard() {
   const [moodNotes, setMoodNotes] = useState('');
   const [crisisAnalysis, setCrisisAnalysis] = useState(null);
   const [showCrisisResponse, setShowCrisisResponse] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [crisisLevel, setCrisisLevel] = useState(0);
+  
   
   // Peer supporter specific state
   const [peerSessions, setPeerSessions] = useState([]);
@@ -47,34 +49,43 @@ function StudentDashboard() {
   const [confirmedAppointment, setConfirmedAppointment] = useState(null);
 
   // NEW: Crisis Detection Engine
-  const analyzeCrisisRisk = (text) => {
-    if (!text || text.trim().length === 0) return { level: 0, category: 'none', suggestions: [] };
-    
-    const textLower = text.toLowerCase();
-    
-    // Crisis keywords with severity weights
-    const crisisKeywords = {
-      critical: { // Level 9-10: Immediate crisis
-        keywords: ['suicide', 'kill myself', 'end it all', 'want to die', 'not worth living', 'better off dead'],
-        weight: 10
-      },
-      high: { // Level 7-8: High risk
-        keywords: ['hopeless', 'worthless', 'can\'t go on', 'nobody cares', 'give up', 'can\'t take it'],
-        weight: 8
-      },
-      medium: { // Level 5-6: Warning signs
-        keywords: ['alone', 'struggling', 'overwhelmed', 'can\'t cope', 'stressed out', 'falling apart'],
-        weight: 5
-      },
-      low: { // Level 3-4: Mild concern
-        keywords: ['tired', 'sad', 'worried', 'anxious', 'confused', 'frustrated'],
-        weight: 3
-      },
-      positive: { // Level 1-2: Positive indicators
-        keywords: ['better', 'hopeful', 'good day', 'improving', 'grateful', 'optimistic'],
-        weight: 1
-      }
-    };
+const analyzeCrisisRisk = (text) => {
+  if (!text || text.trim().length === 0) return { level: 0, category: 'none', suggestions: [] };
+  
+  const textLower = text.toLowerCase();
+  
+  // Crisis keywords with severity weights
+  const crisisKeywords = {
+    critical: { // Level 9-10: Immediate crisis
+      keywords: ['suicide', 'kill myself', 'end it all', 'want to die', 'not worth living', 'better off dead', 
+                'end my life', 'take my own life', 'goodbye forever', 'say goodbye', 'made a plan', 
+                'have everything ready', 'nobody would miss me', 'world without me'],
+      weight: 10
+    },
+    high: { // Level 7-8: High risk  
+      keywords: ['cut myself', 'hurt myself', 'harm myself', 'cutting again', 'self harm', 'self-harm',
+                'hopeless', 'worthless', 'can\'t go on', 'nobody cares', 'give up', 'can\'t take it',
+                'hate myself', 'want to disappear', 'ending everything', 'better off without me',
+                'burden to everyone', 'voices telling me', 'want to hurt myself'],
+      weight: 8
+    },
+    medium: { // Level 5-6: Warning signs
+      keywords: ['alone', 'struggling', 'overwhelmed', 'can\'t cope', 'stressed out', 'falling apart',
+                'panic attack', 'can\'t breathe', 'out of control', 'breaking down', 'losing it',
+                'can\'t handle', 'too much pain', 'completely lost', 'falling apart', 'drowning'],
+      weight: 5
+    },
+    low: { // Level 3-4: Mild concern
+      keywords: ['tired', 'sad', 'worried', 'anxious', 'confused', 'frustrated', 'upset', 'down',
+                'stressed', 'pressure', 'difficult', 'hard time', 'not okay', 'struggling a bit'],
+      weight: 3
+    },
+    positive: { // Level 1-2: Positive indicators
+      keywords: ['better', 'hopeful', 'good day', 'improving', 'grateful', 'optimistic', 'proud',
+                'accomplished', 'happy', 'excited', 'peaceful', 'calm', 'confident', 'motivated'],
+      weight: 1
+    }
+  };
     
     let totalScore = 0;
     let matchedKeywords = [];
