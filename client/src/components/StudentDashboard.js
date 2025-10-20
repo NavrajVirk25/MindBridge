@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import ChatComponent from './ChatComponent';
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -38,6 +39,9 @@ function StudentDashboard() {
   const [peerSessions, setPeerSessions] = useState([]);
   const [supportRequests, setSupportRequests] = useState([]);
   const [peerSchedule, setPeerSchedule] = useState([]);
+
+  // Chat state - track if chat is active in Peer Support tab
+  const [isChatActive, setIsChatActive] = useState(false);
 
    // Appointment modal state variables
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -462,7 +466,7 @@ const analyzeCrisisRisk = (text) => {
           >
             📅 Appointments
           </button>
-          <button 
+          <button
             className={`nav-tab ${selectedTab === 'support' ? 'active' : ''}`}
             onClick={() => setSelectedTab('support')}
           >
@@ -686,27 +690,50 @@ const analyzeCrisisRisk = (text) => {
             {!isPeerSupporter ? (
               // Regular student peer support view
               <div>
-                <h2>Peer Support Network</h2>
-                
-                <div className="support-options">
-                  <div className="support-card">
-                    <h3>🤝 Connect with Peer Supporters</h3>
-                    <p>Chat with trained student volunteers who understand your experience.</p>
-                    <button className="action-btn primary">Find Peer Support</button>
+                {!isChatActive ? (
+                  // Show support options
+                  <>
+                    <h2>Peer Support Network</h2>
+
+                    <div className="support-options">
+                      <div className="support-card">
+                        <h3>🤝 Connect with Peer Supporters</h3>
+                        <p>Chat with trained student volunteers who understand your experience.</p>
+                        <button className="action-btn primary">Find Peer Support</button>
+                      </div>
+
+                      <div className="support-card">
+                        <h3>👥 Join Support Groups</h3>
+                        <p>Participate in group sessions with other students facing similar challenges.</p>
+                        <button className="action-btn secondary">Browse Groups</button>
+                      </div>
+
+                      <div className="support-card">
+                        <h3>💬 Anonymous Chat</h3>
+                        <p>Get support through our confidential peer chat service.</p>
+                        <button
+                          className="action-btn secondary"
+                          onClick={() => setIsChatActive(true)}
+                        >
+                          Start Anonymous Chat
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // Show chat interface
+                  <div className="chat-container">
+                    <div className="chat-header-controls">
+                      <button
+                        className="back-button"
+                        onClick={() => setIsChatActive(false)}
+                      >
+                        ← Back to Support Options
+                      </button>
+                    </div>
+                    <ChatComponent />
                   </div>
-                  
-                  <div className="support-card">
-                    <h3>👥 Join Support Groups</h3>
-                    <p>Participate in group sessions with other students facing similar challenges.</p>
-                    <button className="action-btn secondary">Browse Groups</button>
-                  </div>
-                  
-                  <div className="support-card">
-                    <h3>💬 Anonymous Chat</h3>
-                    <p>Get support through our confidential peer chat service.</p>
-                    <button className="action-btn secondary">Start Anonymous Chat</button>
-                  </div>
-                </div>
+                )}
               </div>
             ) : (
               // Peer supporter dashboard view

@@ -6,6 +6,7 @@ import UnifiedLogin from './components/UnifiedLogin';
 import StudentDashboard from './components/StudentDashboard';
 import CounselorDashboard from './components/CounselorDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import ChatComponent from './components/ChatComponent';
 
 // LandingPage component - contains all your existing functionality
 function LandingPage() {
@@ -306,8 +307,9 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<UnifiedLogin />} />
         <Route path="/dashboard/student" element={<StudentDashboard />} />
-<Route path="/dashboard/counselor" element={<CounselorDashboard />} />
-<Route path="/dashboard/admin" element={<AdminDashboard />} />
+        <Route path="/dashboard/counselor" element={<CounselorDashboard />} />
+        <Route path="/dashboard/admin" element={<AdminDashboard />} />
+        <Route path="/chat" element={<ChatComponent />} />
       </Routes>
     </Router>
   );
