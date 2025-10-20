@@ -764,35 +764,219 @@ app.get('/api/admin/platform/statistics', async (req, res) => {
     });
   }
 });
+// Import chat service
+const chatService = require('./services/chatService');
+
+// Store socket-to-user mappings
+const socketUsers = new Map(); // socketId -> userId
+const userSockets = new Map(); // userId -> socketId
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('✓ New client connected:', socket.id);
 
-  // Log when client disconnects
-  socket.on('disconnect', (reason) => {
-    console.log('✗ Client disconnected:', socket.id, '| Reason:', reason);
+  // User authentication and room joining
+  socket.on('authenticate', async (data) => {
+    console.log('🔐 Authenticate event received:', data);
+    try {
+      const { userId, userType } = data;
+      console.log('👤 Processing authentication for:', userId, userType);
+
+      // Store socket-user mapping
+      socketUsers.set(socket.id, { userId, userType });
+      userSockets.set(userId, socket.id);
+
+      console.log(`✅ User authenticated: ${userId} (${userType})`);
+
+      // If peer supporter, update their online status
+      if (userType === 'peer_supporter') {
+        await chatService.updatePeerSupporterStatus(userId, true, socket.id);
+        console.log(`Peer supporter ${userId} is now online`);
+      }
+
+      // Get or create active chat room
+      let chatRoom = await chatService.getActiveChatRoom(userId);
+
+      // If student and no active room, create one and try to match
+      if (!chatRoom && userType === 'student') {
+        // Create waiting room
+        chatRoom = await chatService.createChatRoom(userId, null, true);
+        console.log(`Created chat room ${chatRoom.id} for student ${userId}`);
+
+        // Try to find available peer supporter
+        const availablePeer = await chatService.findAvailablePeerSupporter();
+
+        if (availablePeer) {
+          // Assign peer supporter to room
+          await chatService.assignPeerSupporter(chatRoom.id, availablePeer.id);
+          chatRoom.peer_support_id = availablePeer.id;
+          chatRoom.status = 'active';
+
+          console.log(`Matched student ${userId} with peer supporter ${availablePeer.id}`);
+
+          // Notify peer supporter of new chat
+          const peerSocketId = userSockets.get(availablePeer.id);
+          if (peerSocketId) {
+            io.to(peerSocketId).emit('new_chat_assigned', {
+              chatRoomId: chatRoom.id,
+              studentId: userId
+            });
+          }
+        }
+      }
+
+      if (chatRoom) {
+        // Join socket room
+        socket.join(`chat_${chatRoom.id}`);
+        console.log(`📥 User ${userId} joined chat room ${chatRoom.id}`);
+
+        // Get chat history
+        const history = await chatService.getChatHistory(chatRoom.id);
+        console.log(`📚 Retrieved ${history.length} messages from history`);
+
+        const chatReadyData = {
+          chatRoomId: chatRoom.id,
+          status: chatRoom.status,
+          isAnonymous: chatRoom.is_anonymous,
+          history: history.map(msg => ({
+            id: msg.id,
+            message: msg.message,
+            sender: msg.sender_id === userId ? 'me' : 'other',
+            timestamp: msg.created_at
+          }))
+        };
+
+        // Send chat room info and history
+        console.log(`📤 Sending chat_ready to user ${userId}:`, chatReadyData);
+        socket.emit('chat_ready', chatReadyData);
+
+        // Mark messages as read
+        await chatService.markMessagesAsRead(chatRoom.id, userId);
+      } else {
+        console.log(`⏳ No chat room for user ${userId}, sending waiting status`);
+        socket.emit('chat_ready', {
+          status: 'waiting',
+          message: 'Waiting for available peer supporter...'
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Authentication error:', error);
+      console.error('Error stack:', error.stack);
+      socket.emit('error', { message: 'Authentication failed: ' + error.message });
+    }
   });
 
   // Handle incoming chat messages
-  socket.on('chat_message', (data) => {
-    console.log('Chat message received from', socket.id, ':', data.message);
+  socket.on('chat_message', async (data) => {
+    try {
+      const userInfo = socketUsers.get(socket.id);
+      if (!userInfo) {
+        socket.emit('error', { message: 'Not authenticated' });
+        return;
+      }
 
-    // Broadcast to all other clients (except sender)
-    socket.broadcast.emit('chat_message', {
-      id: data.id,
-      message: data.message,
-      sender: 'other',
-      timestamp: data.timestamp
+      const { userId } = userInfo;
+      const { chatRoomId, message } = data;
+
+      console.log(`💬 Message from user ${userId} in room ${chatRoomId}: ${message}`);
+
+      // Save message to database
+      const savedMessage = await chatService.saveMessage(chatRoomId, userId, message);
+      console.log(`✅ Message saved to DB with ID: ${savedMessage.id}`);
+
+      // Get all sockets in this room
+      const socketsInRoom = await io.in(`chat_${chatRoomId}`).fetchSockets();
+      console.log(`📢 Broadcasting to ${socketsInRoom.length} users in room`);
+
+      // Send to each socket with correct sender designation
+      socketsInRoom.forEach(recipientSocket => {
+        const recipientInfo = socketUsers.get(recipientSocket.id);
+        if (recipientInfo) {
+          // Convert both to numbers to ensure proper comparison
+          const recipientUserId = Number(recipientInfo.userId);
+          const senderUserId = Number(userId);
+          const isSender = recipientUserId === senderUserId;
+
+          console.log(`  → Comparing: recipient=${recipientUserId} vs sender=${senderUserId} => isSender=${isSender}`);
+
+          recipientSocket.emit('chat_message', {
+            id: savedMessage.id,
+            message: savedMessage.message,
+            sender: isSender ? 'me' : 'other',
+            senderId: savedMessage.sender_id,
+            timestamp: savedMessage.created_at
+          });
+          console.log(`  → Sent to user ${recipientUserId} as '${isSender ? 'me' : 'other'}'`);
+        }
+      });
+
+    } catch (error) {
+      console.error('Error handling chat message:', error);
+      socket.emit('error', { message: 'Failed to send message' });
+    }
+  });
+
+  // Handle chat room closing
+  socket.on('close_chat', async (data) => {
+    try {
+      const userInfo = socketUsers.get(socket.id);
+      if (!userInfo) return;
+
+      const { chatRoomId } = data;
+
+      await chatService.closeChatRoom(chatRoomId);
+
+      // Notify everyone in the room
+      io.to(`chat_${chatRoomId}`).emit('chat_closed', {
+        message: 'Chat session has ended'
+      });
+
+      console.log(`Chat room ${chatRoomId} closed`);
+
+    } catch (error) {
+      console.error('Error closing chat:', error);
+    }
+  });
+
+  // Handle typing indicators
+  socket.on('typing', (data) => {
+    const userInfo = socketUsers.get(socket.id);
+    if (!userInfo) return;
+
+    const { chatRoomId, isTyping } = data;
+
+    // Broadcast typing status to others in the room
+    socket.to(`chat_${chatRoomId}`).emit('user_typing', {
+      isTyping,
+      userId: userInfo.userId
     });
   });
 
-  // Test event listener
-  socket.on('test', (data) => {
-    console.log('Test event received:', data);
-    socket.emit('test_response', { message: 'Test received successfully', data });
+  // Handle disconnect
+  socket.on('disconnect', async (reason) => {
+    const userInfo = socketUsers.get(socket.id);
+
+    if (userInfo) {
+      const { userId, userType } = userInfo;
+
+      console.log(`✗ User ${userId} disconnected: ${reason}`);
+
+      // If peer supporter, update their status to offline
+      if (userType === 'peer_supporter') {
+        await chatService.updatePeerSupporterStatus(userId, false, null);
+        console.log(`Peer supporter ${userId} is now offline`);
+      }
+
+      // Clean up mappings
+      socketUsers.delete(socket.id);
+      userSockets.delete(userId);
+    } else {
+      console.log('✗ Client disconnected:', socket.id, '| Reason:', reason);
+    }
   });
 
-  // Send welcome message to connected client
+  // Send welcome message
   socket.emit('welcome', {
     message: 'Connected to MindBridge Socket.io server',
     socketId: socket.id,

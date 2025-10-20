@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "migrate": "node migrations/run-migration.js",
+    "migrate:chat": "node migrations/run-migration.js 001_create_chat_tables.sql"
   },
   "keywords": [],
   "author": "",

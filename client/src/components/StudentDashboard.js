@@ -12,11 +12,13 @@ function StudentDashboard() {
   const isPeerSupporter = new URLSearchParams(location.search).get('peer') === 'true';
   
   const [currentUser] = useState({
+    id: isPeerSupporter ? 2 : 1, // Database user ID
     name: isPeerSupporter ? 'Emma Chen' : 'Alex Johnson',
     email: isPeerSupporter ? 'peer.supporter@student.kpu.ca' : 'alex.johnson@student.kpu.ca',
     studentId: isPeerSupporter ? '100234567' : '100123456',
     program: isPeerSupporter ? 'Psychology' : 'Computer Science',
     year: '3rd Year',
+    userType: isPeerSupporter ? 'peer_supporter' : 'student',
     peerStatus: isPeerSupporter ? 'Certified Peer Supporter' : null
   });
 
@@ -42,6 +44,9 @@ function StudentDashboard() {
 
   // Chat state - track if chat is active in Peer Support tab
   const [isChatActive, setIsChatActive] = useState(false);
+
+  // Coming Soon modal state
+  const [showComingSoon, setShowComingSoon] = useState(false);
 
    // Appointment modal state variables
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -699,13 +704,23 @@ const analyzeCrisisRisk = (text) => {
                       <div className="support-card">
                         <h3>🤝 Connect with Peer Supporters</h3>
                         <p>Chat with trained student volunteers who understand your experience.</p>
-                        <button className="action-btn primary">Find Peer Support</button>
+                        <button
+                          className="action-btn primary"
+                          onClick={() => setShowComingSoon(true)}
+                        >
+                          Find Peer Support
+                        </button>
                       </div>
 
                       <div className="support-card">
                         <h3>👥 Join Support Groups</h3>
                         <p>Participate in group sessions with other students facing similar challenges.</p>
-                        <button className="action-btn secondary">Browse Groups</button>
+                        <button
+                          className="action-btn secondary"
+                          onClick={() => setShowComingSoon(true)}
+                        >
+                          Browse Groups
+                        </button>
                       </div>
 
                       <div className="support-card">
@@ -731,16 +746,21 @@ const analyzeCrisisRisk = (text) => {
                         ← Back to Support Options
                       </button>
                     </div>
-                    <ChatComponent />
+                    <ChatComponent
+                      userId={currentUser.id}
+                      userType={currentUser.userType}
+                    />
                   </div>
                 )}
               </div>
             ) : (
               // Peer supporter dashboard view
               <div>
-                <h2>Peer Support Hub</h2>
-                
-                <div className="peer-dashboard-grid">
+                {!isChatActive ? (
+                  <>
+                    <h2>Peer Support Hub</h2>
+
+                    <div className="peer-dashboard-grid">
                   {/* Active Support Requests */}
                   <div className="dashboard-card support-requests">
                     <h3>Pending Support Requests</h3>
@@ -826,7 +846,13 @@ const analyzeCrisisRisk = (text) => {
                   <div className="dashboard-card peer-actions">
                     <h3>Quick Actions</h3>
                     <div className="action-buttons">
-                      <button className="action-btn primary">
+                      <button
+                        className="action-btn primary"
+                        onClick={() => setIsChatActive(true)}
+                      >
+                        💬 Go Online - Accept Chats
+                      </button>
+                      <button className="action-btn secondary">
                         📞 Start Emergency Consultation
                       </button>
                       <button className="action-btn secondary">
@@ -864,6 +890,24 @@ const analyzeCrisisRisk = (text) => {
                     </div>
                   </div>
                 </div>
+                  </>
+                ) : (
+                  // Show chat interface for peer supporter
+                  <div className="chat-container">
+                    <div className="chat-header-controls">
+                      <button
+                        className="back-button"
+                        onClick={() => setIsChatActive(false)}
+                      >
+                        ← Back to Peer Support Hub
+                      </button>
+                    </div>
+                    <ChatComponent
+                      userId={currentUser.id}
+                      userType={currentUser.userType}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1342,6 +1386,24 @@ const analyzeCrisisRisk = (text) => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Coming Soon Modal */}
+      {showComingSoon && (
+        <div className="modal-overlay" onClick={() => setShowComingSoon(false)}>
+          <div className="modal-content coming-soon-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="coming-soon-icon">🚀</div>
+            <h2>Coming Soon!</h2>
+            <p>We're working on bringing you peer matching and support groups.</p>
+            <p className="coming-soon-subtext">These features will be available in the next update. Stay tuned!</p>
+            <button
+              className="action-btn primary"
+              onClick={() => setShowComingSoon(false)}
+            >
+              Got it!
+            </button>
           </div>
         </div>
       )}
