@@ -6999,3 +6999,37 @@ input:checked + .toggle-slider:before {
 .crisis-alerts-list::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+/* Chat Integration Styles */
+.chat-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.chat-header-controls {
+  margin-bottom: 20px;
+}
+
+.back-button {
+  background: #4a5568;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back-button:hover {
+  background: #2d3748;
+  transform: translateX(-4px);
+}
+
+.back-button:active {
+  transform: translateX(-2px);
+}

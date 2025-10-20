@@ -3,12 +3,23 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const http = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 const pool = require('./db'); // Import our database connection
 
 
 // Create Express application
 const app = express();
+
+// Create HTTP server and attach Socket.io
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Configure this to match your frontend URL in production
+    methods: ["GET", "POST"]
+  }
+});
 
 // Set port from environment variable or default to 5000
 const PORT = process.env.PORT || 5000;
@@ -753,7 +764,45 @@ app.get('/api/admin/platform/statistics', async (req, res) => {
     });
   }
 });
-app.listen(PORT, () => {
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log('✓ New client connected:', socket.id);
+
+  // Log when client disconnects
+  socket.on('disconnect', (reason) => {
+    console.log('✗ Client disconnected:', socket.id, '| Reason:', reason);
+  });
+
+  // Handle incoming chat messages
+  socket.on('chat_message', (data) => {
+    console.log('Chat message received from', socket.id, ':', data.message);
+
+    // Broadcast to all other clients (except sender)
+    socket.broadcast.emit('chat_message', {
+      id: data.id,
+      message: data.message,
+      sender: 'other',
+      timestamp: data.timestamp
+    });
+  });
+
+  // Test event listener
+  socket.on('test', (data) => {
+    console.log('Test event received:', data);
+    socket.emit('test_response', { message: 'Test received successfully', data });
+  });
+
+  // Send welcome message to connected client
+  socket.emit('welcome', {
+    message: 'Connected to MindBridge Socket.io server',
+    socketId: socket.id,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Start the server (use 'server' instead of 'app' for Socket.io support)
+server.listen(PORT, () => {
   console.log(`MindBridge server is running on port ${PORT}`);
   console.log(`Visit http://localhost:${PORT} to see the welcome message`);
+  console.log(`Socket.io server is ready for real-time connections`);
 });
