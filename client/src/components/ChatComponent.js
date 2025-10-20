@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
-function ChatComponent() {
+function ChatComponent({ userId = 1, userType = 'student' }) {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [chatRoomId, setChatRoomId] = useState(null);
+  const [chatStatus, setChatStatus] = useState('connecting');
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   // Connect to Socket.io server
   useEffect(() => {
@@ -19,68 +23,150 @@ function ChatComponent() {
     // Connection event handlers
     newSocket.on('connect', () => {
       console.log('✓ Connected to Socket.io server');
+      console.log('👤 Authenticating as userId:', userId, 'userType:', userType);
       setIsConnected(true);
+
+      // Authenticate user and join chat room
+      newSocket.emit('authenticate', { userId, userType });
+      console.log('📤 Sent authenticate event');
     });
 
     newSocket.on('disconnect', () => {
       console.log('✗ Disconnected from Socket.io server');
       setIsConnected(false);
+      setChatStatus('disconnected');
     });
 
-    // Listen for welcome message from server
-    newSocket.on('welcome', (data) => {
-      console.log('Welcome message received:', data);
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: data.message,
-        sender: 'system',
-        timestamp: new Date(data.timestamp)
-      }]);
+    // Listen for chat ready event (with history)
+    newSocket.on('chat_ready', (data) => {
+      console.log('📋 Chat ready event received:', data);
+      console.log('🔑 Chat Room ID:', data.chatRoomId);
+      console.log('📊 Status:', data.status);
+
+      if (data.chatRoomId) {
+        setChatRoomId(data.chatRoomId);
+        setChatStatus(data.status);
+        console.log('✅ Chat room ID set:', data.chatRoomId);
+
+        // Load chat history
+        if (data.history && data.history.length > 0) {
+          setMessages(data.history.map(msg => ({
+            id: msg.id,
+            text: msg.message,
+            sender: msg.sender,
+            timestamp: new Date(msg.timestamp)
+          })));
+        } else {
+          // Add welcome message
+          setMessages([{
+            id: 'welcome',
+            text: 'Chat session started. A peer supporter will be with you shortly.',
+            sender: 'system',
+            timestamp: new Date()
+          }]);
+        }
+      } else {
+        setChatStatus(data.status);
+        setMessages([{
+          id: 'waiting',
+          text: data.message || 'Waiting for available peer supporter...',
+          sender: 'system',
+          timestamp: new Date()
+        }]);
+      }
     });
 
     // Listen for incoming messages
     newSocket.on('chat_message', (data) => {
+      console.log('📨 Received chat_message:', data);
       setMessages(prev => [...prev, {
-        id: data.id || Date.now(),
+        id: data.id,
         text: data.message,
-        sender: data.sender || 'other',
+        sender: data.sender,
         timestamp: new Date(data.timestamp)
       }]);
+    });
+
+    // Listen for typing indicators
+    newSocket.on('user_typing', (data) => {
+      setIsTyping(data.isTyping);
+    });
+
+    // Listen for chat closed event
+    newSocket.on('chat_closed', (data) => {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: data.message,
+        sender: 'system',
+        timestamp: new Date()
+      }]);
+      setChatStatus('closed');
+    });
+
+    // Listen for errors
+    newSocket.on('error', (data) => {
+      console.error('❌ Socket error:', data);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: `Error: ${data.message}`,
+        sender: 'system',
+        timestamp: new Date()
+      }]);
+    });
+
+    // Listen for welcome message (initial connection)
+    newSocket.on('welcome', (data) => {
+      console.log('👋 Welcome message received:', data);
     });
 
     // Cleanup on component unmount
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [userId, userType]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Handle typing indicator
+  const handleTyping = () => {
+    if (!socket || !chatRoomId) return;
+
+    // Send typing start
+    socket.emit('typing', { chatRoomId, isTyping: true });
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set timeout to stop typing indicator
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('typing', { chatRoomId, isTyping: false });
+    }, 1000);
+  };
+
   // Send message handler
   const handleSendMessage = (e) => {
     e.preventDefault();
 
-    if (!inputMessage.trim() || !socket) return;
+    if (!inputMessage.trim() || !socket || !chatRoomId) return;
+
+    // Stop typing indicator
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    socket.emit('typing', { chatRoomId, isTyping: false });
 
     const messageData = {
-      id: Date.now(),
-      message: inputMessage,
-      sender: 'me',
-      timestamp: new Date().toISOString()
+      chatRoomId,
+      message: inputMessage
     };
 
-    // Add message to local state immediately
-    setMessages(prev => [...prev, {
-      id: messageData.id,
-      text: messageData.message,
-      sender: 'me',
-      timestamp: new Date(messageData.timestamp)
-    }]);
-
-    // Send message to server
+    // Send message to server (don't add locally - wait for broadcast)
+    console.log('📤 Sending message:', messageData);
     socket.emit('chat_message', messageData);
 
     // Clear input
@@ -108,6 +194,10 @@ function ChatComponent() {
             }}></div>
             <span style={styles.statusText}>
               {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+            {/* Debug info */}
+            <span style={{ marginLeft: '10px', fontSize: '12px', color: '#6b7280' }}>
+              Room: {chatRoomId || 'None'} | Status: {chatStatus}
             </span>
           </div>
         </div>
@@ -140,6 +230,15 @@ function ChatComponent() {
             </div>
           ))
         )}
+
+        {/* Typing indicator */}
+        {isTyping && (
+          <div style={styles.typingIndicator}>
+            <span>Peer supporter is typing</span>
+            <span style={styles.typingDots}>...</span>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -148,20 +247,23 @@ function ChatComponent() {
         <input
           type="text"
           value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
+          onChange={(e) => {
+            setInputMessage(e.target.value);
+            handleTyping();
+          }}
           placeholder="Type your message..."
-          disabled={!isConnected}
+          disabled={!isConnected || !chatRoomId || chatStatus === 'closed'}
           style={{
             ...styles.input,
-            ...(isConnected ? {} : styles.inputDisabled)
+            ...(isConnected && chatRoomId && chatStatus !== 'closed' ? {} : styles.inputDisabled)
           }}
         />
         <button
           type="submit"
-          disabled={!isConnected || !inputMessage.trim()}
+          disabled={!isConnected || !chatRoomId || !inputMessage.trim() || chatStatus === 'closed'}
           style={{
             ...styles.sendButton,
-            ...(!isConnected || !inputMessage.trim() ? styles.sendButtonDisabled : {})
+            ...(!isConnected || !chatRoomId || !inputMessage.trim() || chatStatus === 'closed' ? styles.sendButtonDisabled : {})
           }}
         >
           Send
@@ -307,6 +409,19 @@ const styles = {
     backgroundColor: '#1f2937',
     cursor: 'not-allowed',
     opacity: 0.5
+  },
+  typingIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 12px',
+    color: '#9ca3af',
+    fontSize: '14px',
+    fontStyle: 'italic'
+  },
+  typingDots: {
+    animation: 'blink 1.4s infinite',
+    fontSize: '16px'
   }
 };
 
