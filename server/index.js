@@ -16,8 +16,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Configure this to match your frontend URL in production
-    methods: ["GET", "POST"]
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -26,7 +27,12 @@ const PORT = process.env.PORT || 5000;
 
 // Apply middleware
 app.use(helmet()); // Add security headers
-app.use(cors()); // Enable CORS for frontend communication
+// CORS configuration for production
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(morgan('dev')); // Log HTTP requests
 app.use(express.json()); // Parse JSON request bodies
 
