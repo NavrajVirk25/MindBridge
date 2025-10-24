@@ -25,6 +25,7 @@ dist/
 # IDE files
 .vscode/
 .idea/
+.claude/
 
 # OS files
 .DS_Store
@@ -33,3 +34,10 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Private documentation (keep local only)
+SECURITY_IMPROVEMENTS.md
+TEST_CREDENTIALS.md
+HTTPS_SETUP.md
+DATABASE_CONNECTIONS_FIX.md
+CHAT_SYSTEM_DOCUMENTATION.md

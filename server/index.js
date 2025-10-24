@@ -22,6 +22,37 @@ const io = new Server(server, {
   }
 });
 
+// Socket.IO authentication middleware
+io.use((socket, next) => {
+  try {
+    // Get token from handshake auth
+    const token = socket.handshake.auth.token;
+
+    if (!token) {
+      return next(new Error('Authentication error: No token provided'));
+    }
+
+    // Verify token
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        return next(new Error('Authentication error: Invalid token'));
+      }
+
+      // Add user information to socket object
+      socket.user = {
+        userId: decoded.userId,
+        email: decoded.email,
+        userType: decoded.userType
+      };
+
+      next();
+    });
+  } catch (error) {
+    console.error('Socket authentication error:', error);
+    next(new Error('Authentication error'));
+  }
+});
+
 // Set port from environment variable or default to 5000
 const PORT = process.env.PORT || 5000;
 
@@ -76,8 +107,12 @@ app.get('/api/resources', async (req, res) => {
 });
 
 // Start the server
-// Import bcrypt at the top of your file (add this near your other imports)
+// Import bcrypt and jwt for authentication
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+// Import authentication middleware
+const { authenticateToken, authorizeRoles } = require('./middleware/auth');
 
 // User authentication endpoint
 app.post('/api/auth/login', async (req, res) => {
@@ -106,29 +141,42 @@ app.post('/api/auth/login', async (req, res) => {
     }
     
     const user = result.rows[0];
-    
-// For now, we'll do simple password comparison (we'll improve this)
-// In production, you'd use bcrypt.compare() for hashed passwords
-if (password === 'anything') { // Your current test password
-  // Return user info (excluding password)
-  res.json({
-    success: true,
-    user: {
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      userType: user.user_type
-    },
-    timestamp: new Date().toISOString()
-  });
-} else {
-  res.status(401).json({
-    success: false,
-    error: 'Invalid email or password'
-  });
-}
-    
+
+    // Use bcrypt to securely compare password with hashed password in database
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+
+    if (!validPassword) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password'
+      });
+    }
+
+    // Generate JWT token for authenticated user
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        userType: user.user_type
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    );
+
+    // Return user info and JWT token (excluding password)
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        userType: user.user_type
+      },
+      timestamp: new Date().toISOString()
+    });
+
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
@@ -137,17 +185,117 @@ if (password === 'anything') { // Your current test password
     });
   }
 });
+
+// User registration endpoint
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, firstName, lastName } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        error: 'All fields are required'
+      });
+    }
+
+    // Validate password strength (minimum 6 characters)
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    // Determine user type based on email domain
+    let userType = 'student';
+    if (email.endsWith('@employee.kpu.ca')) {
+      userType = 'counselor';
+    } else if (email.endsWith('@admin.kpu.ca')) {
+      userType = 'admin';
+    }
+
+    // Hash password with bcrypt (10 salt rounds)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert new user into database
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, first_name, last_name, user_type)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, first_name, last_name, user_type`,
+      [email, hashedPassword, firstName, lastName, userType]
+    );
+
+    const newUser = result.rows[0];
+
+    // Generate JWT token for the new user
+    const token = jwt.sign(
+      {
+        userId: newUser.id,
+        email: newUser.email,
+        userType: newUser.user_type
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+    );
+
+    // Return user info and token
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        firstName: newUser.first_name,
+        lastName: newUser.last_name,
+        userType: newUser.user_type
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
 // Mood tracking endpoints
-app.get('/api/mood/:userId', async (req, res) => {
+app.get('/api/mood/:userId', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.userId;
-    
+
+    // Verify user is accessing their own data or is a counselor/admin
+    if (req.user.userId !== parseInt(userId) &&
+        req.user.userType !== 'counselor' &&
+        req.user.userType !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You can only view your own mood entries.'
+      });
+    }
+
     // Get mood entries for a specific user
     const result = await pool.query(
       'SELECT * FROM mood_entries WHERE user_id = $1 ORDER BY created_at DESC LIMIT 30',
       [userId]
     );
-    
+
     res.json({
       success: true,
       data: result.rows,
@@ -164,10 +312,18 @@ app.get('/api/mood/:userId', async (req, res) => {
 });
 
 // Enhanced mood entry endpoint with crisis detection
-app.post('/api/mood', async (req, res) => {
+app.post('/api/mood', authenticateToken, async (req, res) => {
   try {
     const { userId, moodLevel, notes } = req.body;
-    
+
+    // Verify user is creating entry for themselves
+    if (req.user.userId !== parseInt(userId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You can only create mood entries for yourself.'
+      });
+    }
+
     // Validate input
     if (!userId || !moodLevel || moodLevel < 1 || moodLevel > 5) {
       return res.status(400).json({
@@ -273,10 +429,20 @@ function analyzeCrisisText(text) {
 }
 
 // Get mood statistics for a user
-app.get('/api/mood-stats/:userId', async (req, res) => {
+app.get('/api/mood-stats/:userId', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.userId;
-    
+
+    // Verify user is accessing their own data or is a counselor/admin
+    if (req.user.userId !== parseInt(userId) &&
+        req.user.userType !== 'counselor' &&
+        req.user.userType !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You can only view your own mood statistics.'
+      });
+    }
+
     // Get mood statistics
     const result = await pool.query(`
       SELECT 
@@ -308,10 +474,18 @@ app.get('/api/mood-stats/:userId', async (req, res) => {
 });
 
 // Appointment endpoints
-app.get('/api/appointments/:userId', async (req, res) => {
+app.get('/api/appointments/:userId', authenticateToken, async (req, res) => {
   try {
     const userId = req.params.userId;
-    
+
+    // Verify user is accessing their own appointments or is an admin
+    if (req.user.userId !== parseInt(userId) && req.user.userType !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You can only view your own appointments.'
+      });
+    }
+
     // Get appointments for a user (as student or counselor)
     const result = await pool.query(`
       SELECT 
@@ -343,10 +517,20 @@ app.get('/api/appointments/:userId', async (req, res) => {
 });
 
 // Create new appointment
-app.post('/api/appointments', async (req, res) => {
+app.post('/api/appointments', authenticateToken, async (req, res) => {
   try {
     const { studentId, counselorId, appointmentDate, notes } = req.body;
-    
+
+    // Verify user is creating appointment for themselves (as student) or is a counselor/admin
+    if (req.user.userId !== parseInt(studentId) &&
+        req.user.userType !== 'counselor' &&
+        req.user.userType !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Students can only book appointments for themselves.'
+      });
+    }
+
     // Validate input
     if (!studentId || !counselorId || !appointmentDate) {
       return res.status(400).json({
@@ -377,11 +561,19 @@ app.post('/api/appointments', async (req, res) => {
 });
 
 // Update appointment status
-app.put('/api/appointments/:appointmentId', async (req, res) => {
+app.put('/api/appointments/:appointmentId', authenticateToken, async (req, res) => {
   try {
     const appointmentId = req.params.appointmentId;
     const { status, notes } = req.body;
-    
+
+    // Only counselors and admins can update appointment status
+    if (req.user.userType !== 'counselor' && req.user.userType !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Only counselors and admins can update appointments.'
+      });
+    }
+
     // Validate status
     const validStatuses = ['scheduled', 'completed', 'cancelled', 'no_show'];
     if (!validStatuses.includes(status)) {
@@ -421,7 +613,7 @@ app.put('/api/appointments/:appointmentId', async (req, res) => {
 // Crisis Analytics API Endpoints
 
 // Get active crisis alerts for counselor dashboard
-app.get('/api/crisis/alerts', async (req, res) => {
+app.get('/api/crisis/alerts', authenticateToken, authorizeRoles('counselor', 'admin'), async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
@@ -476,7 +668,7 @@ app.get('/api/crisis/alerts', async (req, res) => {
 });
 
 // Get crisis analytics summary for dashboard
-app.get('/api/crisis/analytics', async (req, res) => {
+app.get('/api/crisis/analytics', authenticateToken, authorizeRoles('counselor', 'admin'), async (req, res) => {
   try {
     // Get basic crisis statistics
     const totalAlertsResult = await pool.query(
@@ -584,7 +776,7 @@ function extractKeywordsFromDescription(description) {
 // Admin Crisis Analytics API Endpoints
 
 // Get platform-wide crisis statistics for admin dashboard
-app.get('/api/admin/crisis/statistics', async (req, res) => {
+app.get('/api/admin/crisis/statistics', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   try {
     // Get total crisis detections for current month
     const totalDetectionsResult = await pool.query(`
@@ -705,8 +897,8 @@ app.get('/api/admin/crisis/statistics', async (req, res) => {
   }
 });
 
-// Get platform statistics for admin dashboard  
-app.get('/api/admin/platform/statistics', async (req, res) => {
+// Get platform statistics for admin dashboard
+app.get('/api/admin/platform/statistics', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   try {
     // Get user counts by role
     const userStatsResult = await pool.query(`
@@ -783,9 +975,10 @@ io.on('connection', (socket) => {
 
   // User authentication and room joining
   socket.on('authenticate', async (data) => {
-    console.log('🔐 Authenticate event received:', data);
+    console.log('🔐 Authenticate event received');
     try {
-      const { userId, userType } = data;
+      // Use verified user information from socket.user (set by middleware)
+      const { userId, userType } = socket.user;
       console.log('👤 Processing authentication for:', userId, userType);
 
       // Store socket-user mapping
@@ -876,14 +1069,21 @@ io.on('connection', (socket) => {
   // Handle incoming chat messages
   socket.on('chat_message', async (data) => {
     try {
-      const userInfo = socketUsers.get(socket.id);
-      if (!userInfo) {
+      // Verify user is authenticated (from middleware)
+      if (!socket.user) {
         socket.emit('error', { message: 'Not authenticated' });
         return;
       }
 
-      const { userId } = userInfo;
+      const { userId } = socket.user;
       const { chatRoomId, message } = data;
+
+      // Additional verification from socket mapping
+      const userInfo = socketUsers.get(socket.id);
+      if (!userInfo || userInfo.userId !== userId) {
+        socket.emit('error', { message: 'Authentication mismatch' });
+        return;
+      }
 
       console.log(`💬 Message from user ${userId} in room ${chatRoomId}: ${message}`);
 

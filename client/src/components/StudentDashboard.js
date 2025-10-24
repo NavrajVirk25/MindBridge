@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import ChatComponent from './ChatComponent';
+import api from '../utils/api';
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -10,16 +11,27 @@ function StudentDashboard() {
   
   // Check if user is a peer supporter from URL params
   const isPeerSupporter = new URLSearchParams(location.search).get('peer') === 'true';
-  
-  const [currentUser] = useState({
-    id: isPeerSupporter ? 2 : 1, // Database user ID
-    name: isPeerSupporter ? 'Emma Chen' : 'Alex Johnson',
-    email: isPeerSupporter ? 'peer.supporter@student.kpu.ca' : 'alex.johnson@student.kpu.ca',
-    studentId: isPeerSupporter ? '100234567' : '100123456',
-    program: isPeerSupporter ? 'Psychology' : 'Computer Science',
-    year: '3rd Year',
-    userType: isPeerSupporter ? 'peer_supporter' : 'student',
-    peerStatus: isPeerSupporter ? 'Certified Peer Supporter' : null
+
+  // Get logged-in user from localStorage
+  const [currentUser] = useState(() => {
+    const userStr = localStorage.getItem('mindbridge_user');
+    if (!userStr) {
+      // If no user found, redirect to login
+      navigate('/login');
+      return null;
+    }
+    const user = JSON.parse(userStr);
+
+    return {
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      studentId: user.studentId || `10012${String(user.id).padStart(4, '0')}`,
+      program: user.program || 'Computer Science',
+      year: user.year || '3rd Year',
+      userType: user.userType,
+      peerStatus: isPeerSupporter ? 'Certified Peer Supporter' : null
+    };
   });
 
   const [resources, setResources] = useState([]);
@@ -196,7 +208,7 @@ const analyzeCrisisRisk = (text) => {
 
   // Load dashboard data with real API integration
   const loadDashboardData = useCallback(async () => {
-    // Load resources from backend
+    // Load resources from backend (public endpoint, no auth needed)
     try {
       const response = await fetch('http://localhost:5000/api/resources');
       if (response.ok) {
@@ -213,17 +225,14 @@ const analyzeCrisisRisk = (text) => {
 
     // Load real mood entries from API
     try {
-      const moodResponse = await fetch(`http://localhost:5000/api/mood/${userId}`);
-      if (moodResponse.ok) {
-        const moodData = await moodResponse.json();
-        // Convert API mood data to display format
-        const formattedMoodEntries = moodData.data.map(entry => ({
-          date: entry.created_at.split('T')[0], // Extract date from timestamp
-          mood: convertMoodLevelToText(entry.mood_level), // Convert 1-5 to text
-          note: entry.notes ? entry.notes.replace(/\s*\[CRISIS ANALYSIS:.*?\]/g, '') : 'No notes' // Remove crisis analysis from display
-        }));
-        setMoodEntries(formattedMoodEntries);
-      }
+      const moodData = await api.get(`/api/mood/${userId}`);
+      // Convert API mood data to display format
+      const formattedMoodEntries = moodData.data.map(entry => ({
+        date: entry.created_at.split('T')[0], // Extract date from timestamp
+        mood: convertMoodLevelToText(entry.mood_level), // Convert 1-5 to text
+        note: entry.notes ? entry.notes.replace(/\s*\[CRISIS ANALYSIS:.*?\]/g, '') : 'No notes' // Remove crisis analysis from display
+      }));
+      setMoodEntries(formattedMoodEntries);
     } catch (error) {
       console.error('Error loading mood data:', error);
       // Keep mock data as fallback
@@ -235,24 +244,21 @@ const analyzeCrisisRisk = (text) => {
 
     // Load real appointments from API
     try {
-      const appointmentsResponse = await fetch(`http://localhost:5000/api/appointments/${userId}`);
-      if (appointmentsResponse.ok) {
-        const appointmentsData = await appointmentsResponse.json();
-        // Convert API appointment data to display format
-        const formattedAppointments = appointmentsData.data.map(appointment => ({
-          id: appointment.id,
-          date: appointment.appointment_date.split('T')[0], // Extract date
-          time: new Date(appointment.appointment_date).toLocaleTimeString('en-US', { 
-            hour: 'numeric', 
-            minute: '2-digit',
-            hour12: true 
-          }),
-          type: 'Counseling Session',
-          counselor: `${appointment.counselor_first_name} ${appointment.counselor_last_name}`,
-          status: appointment.status
-        }));
-        setAppointments(formattedAppointments);
-      }
+      const appointmentsData = await api.get(`/api/appointments/${userId}`);
+      // Convert API appointment data to display format
+      const formattedAppointments = appointmentsData.data.map(appointment => ({
+        id: appointment.id,
+        date: appointment.appointment_date.split('T')[0], // Extract date
+        time: new Date(appointment.appointment_date).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }),
+        type: 'Counseling Session',
+        counselor: `${appointment.counselor_first_name} ${appointment.counselor_last_name}`,
+        status: appointment.status
+      }));
+      setAppointments(formattedAppointments);
     } catch (error) {
       console.error('Error loading appointments:', error);
       // Keep mock data as fallback
@@ -347,19 +353,13 @@ const analyzeCrisisRisk = (text) => {
       };
       
       try {
-        const response = await fetch('http://localhost:5000/api/mood', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: userId,
-            moodLevel: moodLevelMap[currentMood],
-            notes: moodNotes || `Mood logged via dashboard`
-          })
+        const response = await api.post('/api/mood', {
+          userId: userId,
+          moodLevel: moodLevelMap[currentMood],
+          notes: moodNotes || `Mood logged via dashboard`
         });
-        
-        if (response.ok) {
+
+        if (response.success) {
           // Separately log crisis analysis for counselor dashboard (not stored with user notes)
           if (analysis.level >= 5) {
             console.log('🚨 CRISIS ANALYSIS LOGGED:', {
@@ -1233,24 +1233,16 @@ const analyzeCrisisRisk = (text) => {
                         
                         // Make API call to save appointment
                         console.log('Making API call to create appointment...');
-                        const response = await fetch('http://localhost:5000/api/appointments', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            studentId: userId,
-                            counselorId: 2, // Default to counselor ID 2
-                            appointmentDate: appointmentDateTime.toISOString(),
-                            notes: appointmentNotes || 'Appointment booked via dashboard'
-                          })
+                        const result = await api.post('/api/appointments', {
+                          studentId: userId,
+                          counselorId: 3, // Counselor user ID from database
+                          appointmentDate: appointmentDateTime.toISOString(),
+                          notes: appointmentNotes || 'Appointment booked via dashboard'
                         });
-                        
-                        console.log('API Response status:', response.status);
-                        
-                        if (response.ok) {
-                          const result = await response.json();
-                          console.log('Appointment created successfully:', result);
+
+                        console.log('Appointment created successfully:', result);
+
+                        if (result.success) {
                           
                           // Store confirmed appointment details for modal
                           setConfirmedAppointment({
@@ -1273,10 +1265,6 @@ const analyzeCrisisRisk = (text) => {
                           setSelectedTime('');
                           setSelectedCounselor('');
                           setAppointmentNotes('');
-                        } else {
-                          const errorData = await response.json();
-                          console.error('API Error:', errorData);
-                          alert(`Failed to book appointment: ${errorData.error || 'Unknown error'}`);
                         }
                       } catch (error) {
                         console.error('Error booking appointment:', error);

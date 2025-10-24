@@ -14,8 +14,20 @@ function ChatComponent({ userId = 1, userType = 'student' }) {
 
   // Connect to Socket.io server
   useEffect(() => {
+    // Get JWT token from localStorage
+    const token = localStorage.getItem('mindbridge_token');
+
+    if (!token) {
+      console.error('No authentication token found. Please log in.');
+      setChatStatus('error');
+      return;
+    }
+
     const newSocket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      auth: {
+        token: token
+      }
     });
 
     setSocket(newSocket);

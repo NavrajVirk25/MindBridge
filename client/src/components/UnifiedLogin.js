@@ -141,9 +141,10 @@ function UnifiedLogin() {
       const result = await response.json();
 
       if (result.success) {
-        // Store user data in localStorage (for session management)
+        // Store user data and JWT token in localStorage (for session management)
         localStorage.setItem('mindbridge_user', JSON.stringify(result.user));
-        
+        localStorage.setItem('mindbridge_token', result.token);
+
         // Navigate to appropriate dashboard
        const isPeer = isPeerSupporter(formData.identifier);
 
