@@ -79,15 +79,12 @@ function StudentDashboard() {
     if (!confirmed) return;
 
     try {
-      console.log('🗑️ Cancelling appointment:', appointmentId);
-
       const result = await api.put(`/api/appointments/${appointmentId}`, {
         status: 'cancelled',
         notes: 'Cancelled by student via dashboard'
       });
 
       if (result && result.success) {
-        console.log('✅ Appointment cancelled successfully');
         alert('Appointment cancelled successfully.');
 
         // Refresh appointments list
@@ -212,15 +209,8 @@ const analyzeCrisisRisk = (text) => {
   const alertCounselors = async (analysis, userInfo, moodData) => {
     if (analysis.level >= 7) {
       try {
-        // Log crisis alert for counselor dashboard (no user alert)
-        console.log(`🚨 Crisis Alert: High-risk situation detected for ${userInfo.name}. Risk Level: ${analysis.level}/10`);
-        
+        // Crisis alert for counselor dashboard (removed debug logs for production)
         // In a real implementation, this would send alerts to counselors
-        console.log('🚨 CRISIS ALERT TRIGGERED');
-        console.log('Risk Level:', analysis.level);
-        console.log('User:', userInfo.name);
-        console.log('Analysis:', analysis);
-        
       } catch (error) {
         console.error('Error sending crisis alert:', error);
       }
@@ -243,7 +233,7 @@ const analyzeCrisisRisk = (text) => {
   const loadDashboardData = useCallback(async () => {
     // Load resources from backend (public endpoint, no auth needed)
     try {
-      const response = await fetch('http://localhost:5000/api/resources');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/resources`);
       if (response.ok) {
         const data = await response.json();
         setResources(data.data.slice(0, 4)); // Show first 4 resources
@@ -277,9 +267,7 @@ const analyzeCrisisRisk = (text) => {
 
     // Load real appointments from API
     try {
-      console.log('📅 Loading appointments for user:', userId);
       const appointmentsData = await api.get(`/api/appointments/${userId}`);
-      console.log('📊 Appointments data received:', appointmentsData);
 
       if (appointmentsData && appointmentsData.success && appointmentsData.data) {
         // Convert API appointment data to display format
@@ -316,8 +304,6 @@ const analyzeCrisisRisk = (text) => {
           }
         });
 
-        console.log('✅ Formatted and sorted appointments:', formattedAppointments.length, 'appointments');
-        console.log('First 3 appointments:', formattedAppointments.slice(0, 3).map(a => ({ id: a.id, date: a.date, time: a.time })));
         setAppointments(formattedAppointments);
       } else {
         console.warn('⚠️ Unexpected appointments data format:', appointmentsData);
@@ -338,7 +324,8 @@ const analyzeCrisisRisk = (text) => {
 
     // Load peer supporter specific data (keep as mock for now)
     if (isPeerSupporter) {
-      // Mock peer sessions
+      // ⚠️ MOCK DATA - Peer supporter features not yet implemented in backend
+      // TODO: Create peer supporter session management API
       setPeerSessions([
         {
           id: 1,
@@ -360,7 +347,8 @@ const analyzeCrisisRisk = (text) => {
         }
       ]);
 
-      // Mock support requests
+      // ⚠️ MOCK DATA - Support request system not yet implemented
+      // TODO: Create support request API endpoints
       setSupportRequests([
         {
           id: 1,
@@ -380,7 +368,8 @@ const analyzeCrisisRisk = (text) => {
         }
       ]);
 
-      // Mock peer schedule
+      // ⚠️ MOCK DATA - Peer scheduling not yet implemented
+      // TODO: Create peer availability/schedule API
       setPeerSchedule([
         { day: 'Monday', time: '2:00 PM - 4:00 PM', available: true },
         { day: 'Wednesday', time: '10:00 AM - 12:00 PM', available: true },
@@ -424,18 +413,10 @@ const analyzeCrisisRisk = (text) => {
         if (response.success) {
           // Separately log crisis analysis for counselor dashboard (not stored with user notes)
           if (analysis.level >= 5) {
-            console.log('🚨 CRISIS ANALYSIS LOGGED:', {
-              userId: userId,
-              userName: currentUser.name,
-              riskLevel: analysis.level,
-              category: analysis.category,
-              userText: moodNotes,
-              timestamp: new Date().toISOString(),
-              suggestions: analysis.suggestions
-            });
+            // Crisis analysis logged (removed debug console.log for production)
             
             // In a real system, this would be sent to a separate crisis monitoring system
-            // await fetch('http://localhost:5000/api/crisis-alerts', { ... });
+            // await fetch(`${process.env.REACT_APP_API_URL}/api/crisis-alerts`, { ... });
           }
           
           // Alert counselors if high risk detected
@@ -1400,11 +1381,9 @@ const analyzeCrisisRisk = (text) => {
                 <button
                   className="action-btn primary"
                   onClick={async () => {
-                    console.log('📅 Book Appointment button clicked');
 
                     // Validate all required fields
                     if (!selectedDate || !selectedTime || !selectedCounselor) {
-                      console.warn('⚠️ Missing required fields:', { selectedDate, selectedTime, selectedCounselor });
                       alert('Please select a date, time, and counselor.');
                       return;
                     }
@@ -1420,8 +1399,6 @@ const analyzeCrisisRisk = (text) => {
                         return;
                       }
 
-                      console.log('👤 User ID:', userId);
-                      console.log('📋 Selected counselor:', selectedCounselor);
 
                       // Map counselor names to IDs (based on database)
                       const counselorMap = {
@@ -1432,7 +1409,6 @@ const analyzeCrisisRisk = (text) => {
                       };
 
                       const counselorId = counselorMap[selectedCounselor] || 3;
-                      console.log('🔢 Using counselor ID:', counselorId);
 
                       // Convert date and time to proper format for API
                       const appointmentDateTime = new Date(selectedDate);
@@ -1446,10 +1422,7 @@ const analyzeCrisisRisk = (text) => {
 
                       appointmentDateTime.setHours(hour24, parseInt(minutes), 0, 0);
 
-                      console.log('🕐 Appointment DateTime:', appointmentDateTime.toISOString());
-
                       // Make API call to save appointment
-                      console.log('🌐 Making API call to create appointment...');
                       const result = await api.post('/api/appointments', {
                         studentId: userId,
                         counselorId: counselorId,
@@ -1457,10 +1430,7 @@ const analyzeCrisisRisk = (text) => {
                         notes: appointmentNotes || 'Appointment booked via dashboard'
                       });
 
-                      console.log('✅ API Response:', result);
-
                       if (result && result.success) {
-                        console.log('✅ Appointment created successfully with ID:', result.data.id);
 
                         // Store confirmed appointment details for modal
                         setConfirmedAppointment({
@@ -1474,9 +1444,7 @@ const analyzeCrisisRisk = (text) => {
                         setShowAppointmentModal(false);
 
                         // Refresh appointments list BEFORE showing confirmation
-                        console.log('🔄 Refreshing appointments list...');
                         await loadDashboardData();
-                        console.log('✅ Appointments list refreshed');
 
                         // Show confirmation modal
                         setShowConfirmationModal(true);

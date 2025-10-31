@@ -41,7 +41,11 @@ TEST_CREDENTIALS.md
 HTTPS_SETUP.md
 DATABASE_CONNECTIONS_FIX.md
 CHAT_SYSTEM_DOCUMENTATION.md
+*.txt
 
 # Crisis detection keywords - NEVER commit to GitHub
 CRISIS_KEYWORDS_PRIVATE.txt
 *CRISIS_KEYWORDS*.txt
+
+# Status updates for professor (keep local only)
+STATUS_UPDATE_*.txt

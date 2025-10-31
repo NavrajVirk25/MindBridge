@@ -26,11 +26,11 @@ function AdminDashboard() {
   const loadDashboardData = async () => {
   try {
     // Fetch real crisis statistics from API
-    const crisisStatsResponse = await fetch('http://localhost:5000/api/admin/crisis/statistics');
+    const crisisStatsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/crisis/statistics`);
     const crisisStatsData = await crisisStatsResponse.json();
-    
-    // Fetch real platform statistics from API  
-    const platformStatsResponse = await fetch('http://localhost:5000/api/admin/platform/statistics');
+
+    // Fetch real platform statistics from API
+    const platformStatsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/platform/statistics`);
     const platformStatsData = await platformStatsResponse.json();
     
     if (crisisStatsData.success && platformStatsData.success) {
@@ -53,7 +53,7 @@ function AdminDashboard() {
         emergencyEscalations: crisisStatsData.data.emergencyEscalations,
         riskDistribution: crisisStatsData.data.riskDistribution,
         trendData: crisisStatsData.data.trendData,
-        // Keep mock counselor workload for now
+        // ⚠️ MOCK DATA - Replace with API call when counselor workload endpoint is available
         counselorWorkload: [
           { name: 'Dr. Sarah Mitchell', activeCases: 12, crisisAlerts: 3, responseTime: '8 min' },
           { name: 'Dr. James Chen', activeCases: 15, crisisAlerts: 2, responseTime: '12 min' },
@@ -63,7 +63,8 @@ function AdminDashboard() {
       });
     }
 
-    // Keep existing mock data for users and system health (for now)
+    // ⚠️ MOCK DATA - Replace with real user data from /api/admin/users endpoint
+    // TODO: Create API endpoint to fetch all platform users
     setUsers([
       {
         id: 1,

@@ -25,7 +25,7 @@ function LandingPage() {
   useEffect(() => {
     const fetchResources = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/resources');
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/api/resources`);
         if (!response.ok) {
           throw new Error('Failed to fetch resources');
         }
@@ -65,7 +65,6 @@ function LandingPage() {
   // Handle intent selection
   const handleIntentClick = (intent) => {
     setUserIntent(intent);
-    console.log('User intent selected:', intent); // This satisfies ESLint
     
     switch(intent) {
       case 'immediate':
