@@ -68,6 +68,39 @@ function StudentDashboard() {
   const [appointmentNotes, setAppointmentNotes] = useState('');
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [confirmedAppointment, setConfirmedAppointment] = useState(null);
+  const [showPastAppointments, setShowPastAppointments] = useState(false);
+  const [showMoodSuccess, setShowMoodSuccess] = useState(false);
+  const [loggedMoodData, setLoggedMoodData] = useState(null);
+
+  // Handle appointment cancellation
+  const handleCancelAppointment = async (appointmentId) => {
+    const confirmed = window.confirm('Are you sure you want to cancel this appointment? This action cannot be undone.');
+
+    if (!confirmed) return;
+
+    try {
+      console.log('🗑️ Cancelling appointment:', appointmentId);
+
+      const result = await api.put(`/api/appointments/${appointmentId}`, {
+        status: 'cancelled',
+        notes: 'Cancelled by student via dashboard'
+      });
+
+      if (result && result.success) {
+        console.log('✅ Appointment cancelled successfully');
+        alert('Appointment cancelled successfully.');
+
+        // Refresh appointments list
+        await loadDashboardData();
+      } else {
+        console.error('❌ Failed to cancel appointment:', result);
+        alert('Failed to cancel appointment. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Error cancelling appointment:', error);
+      alert('Error cancelling appointment: ' + error.message);
+    }
+  };
 
   // NEW: Crisis Detection Engine
 const analyzeCrisisRisk = (text) => {
@@ -244,34 +277,63 @@ const analyzeCrisisRisk = (text) => {
 
     // Load real appointments from API
     try {
+      console.log('📅 Loading appointments for user:', userId);
       const appointmentsData = await api.get(`/api/appointments/${userId}`);
-      // Convert API appointment data to display format
-      const formattedAppointments = appointmentsData.data.map(appointment => ({
-        id: appointment.id,
-        date: appointment.appointment_date.split('T')[0], // Extract date
-        time: new Date(appointment.appointment_date).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        }),
-        type: 'Counseling Session',
-        counselor: `${appointment.counselor_first_name} ${appointment.counselor_last_name}`,
-        status: appointment.status
-      }));
-      setAppointments(formattedAppointments);
-    } catch (error) {
-      console.error('Error loading appointments:', error);
-      // Keep mock data as fallback
-      setAppointments([
-        {
-          id: 1,
-          date: '2025-07-03',
-          time: '2:00 PM',
+      console.log('📊 Appointments data received:', appointmentsData);
+
+      if (appointmentsData && appointmentsData.success && appointmentsData.data) {
+        // Convert API appointment data to display format
+        const formattedAppointments = appointmentsData.data.map(appointment => ({
+          id: appointment.id,
+          date: appointment.appointment_date.split('T')[0], // Extract date
+          time: new Date(appointment.appointment_date).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          }),
           type: 'Counseling Session',
-          counselor: 'Dr. Sarah Mitchell',
-          status: 'confirmed'
-        }
-      ]);
+          counselor: `${appointment.counselor_first_name} ${appointment.counselor_last_name}`,
+          status: appointment.status,
+          fullDateTime: new Date(appointment.appointment_date) // Keep for sorting
+        }));
+
+        // Sort appointments by date - upcoming appointments first (ascending by date)
+        const now = new Date();
+        formattedAppointments.sort((a, b) => {
+          // Separate past and future appointments
+          const aIsFuture = a.fullDateTime >= now;
+          const bIsFuture = b.fullDateTime >= now;
+
+          // Show future appointments first, sorted ascending (soonest first)
+          if (aIsFuture && !bIsFuture) return -1;
+          if (!aIsFuture && bIsFuture) return 1;
+
+          // Within same category (both future or both past), sort by date
+          if (aIsFuture && bIsFuture) {
+            return a.fullDateTime - b.fullDateTime; // Ascending - soonest first
+          } else {
+            return b.fullDateTime - a.fullDateTime; // Descending - most recent past first
+          }
+        });
+
+        console.log('✅ Formatted and sorted appointments:', formattedAppointments.length, 'appointments');
+        console.log('First 3 appointments:', formattedAppointments.slice(0, 3).map(a => ({ id: a.id, date: a.date, time: a.time })));
+        setAppointments(formattedAppointments);
+      } else {
+        console.warn('⚠️ Unexpected appointments data format:', appointmentsData);
+        setAppointments([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading appointments:', error);
+      console.error('Error details:', error.message);
+
+      // Show user-friendly message for common errors
+      if (error.message && error.message.includes('token')) {
+        console.error('⚠️ Authentication error - user may need to log in again');
+      }
+
+      // Set empty array instead of mock data to avoid confusion
+      setAppointments([]);
     }
 
     // Load peer supporter specific data (keep as mock for now)
@@ -378,18 +440,29 @@ const analyzeCrisisRisk = (text) => {
           
           // Alert counselors if high risk detected
           await alertCounselors(analysis, currentUser, { mood: currentMood, notes: moodNotes });
-          
-          // Show crisis response if needed
+
+          // Close mood tracker modal
+          setShowMoodTracker(false);
+
+          // Show crisis response if needed, otherwise show success modal
           if (analysis.level >= 5) {
             setShowCrisisResponse(true);
           } else {
-            // For low-risk situations, show normal success message
-            alert('Mood logged successfully! 🌟');
-            setCurrentMood('');
-            setMoodNotes('');
-            setShowMoodTracker(false);
+            // For low-risk situations, show interactive success modal
+            setLoggedMoodData({
+              mood: currentMood,
+              moodEmoji: getMoodEmoji(currentMood),
+              notes: moodNotes,
+              analysis: analysis,
+              timestamp: new Date()
+            });
+            setShowMoodSuccess(true);
           }
-          
+
+          // Clear form
+          setCurrentMood('');
+          setMoodNotes('');
+
           // Refresh mood data after successful submission
           loadDashboardData();
         } else {
@@ -654,37 +727,152 @@ const analyzeCrisisRisk = (text) => {
         {/* Appointments Tab */}
         {selectedTab === 'appointments' && (
           <div className="appointments-content">
-            <div className="appointments-header">
-              <h2>Appointments</h2>
-              <button 
+            <div className="appointments-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0 }}>Appointments</h2>
+              <button
                 className="book-appointment-btn"
                 onClick={() => setShowAppointmentModal(true)}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
               >
                 + Book New Appointment
               </button>
             </div>
-            
-            <div className="appointments-list">
-              {appointments.map(appointment => (
-                <div key={appointment.id} className="appointment-card">
-                  <div className="appointment-details">
-                    <h4>{appointment.type}</h4>
-                    <p className="appointment-datetime">
-                      📅 {appointment.date} at {appointment.time}
-                    </p>
-                    <p className="appointment-provider">
-                      👤 {appointment.counselor}
-                    </p>
-                  </div>
-                  <div className="appointment-actions">
-                    <span className={`status-badge ${appointment.status}`}>
-                      {appointment.status}
-                    </span>
-                    <button className="action-btn small">Reschedule</button>
-                    <button className="action-btn small secondary">Cancel</button>
-                  </div>
+
+            {/* Summary Stats */}
+            {appointments.length > 0 && (
+              <div style={{
+                display: 'flex',
+                gap: '20px',
+                marginBottom: '20px',
+                padding: '15px',
+                backgroundColor: '#f5f5f5',
+                borderRadius: '8px'
+              }}>
+                <div>
+                  <strong>Total:</strong> {appointments.length}
                 </div>
-              ))}
+                <div>
+                  <strong style={{ color: '#4CAF50' }}>Upcoming:</strong> {appointments.filter(a => a.fullDateTime >= new Date()).length}
+                </div>
+                <div>
+                  <strong style={{ color: '#999' }}>Past:</strong> {appointments.filter(a => a.fullDateTime < new Date()).length}
+                </div>
+                <div style={{ marginLeft: 'auto' }}>
+                  <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      checked={showPastAppointments}
+                      onChange={(e) => setShowPastAppointments(e.target.checked)}
+                    />
+                    <span>Show past appointments</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <div className="appointments-list">
+              {appointments.length > 0 ? (
+                appointments
+                  .filter(appointment => showPastAppointments || appointment.fullDateTime >= new Date())
+                  .map((appointment, index) => {
+                    const isPast = appointment.fullDateTime < new Date();
+                    const isUpcoming = !isPast && index < 3; // First 3 future appointments
+
+                    return (
+                      <div
+                        key={appointment.id}
+                        className="appointment-card"
+                        style={{
+                          opacity: isPast ? 0.6 : 1,
+                          border: isUpcoming ? '2px solid #4CAF50' : '1px solid #ddd',
+                          backgroundColor: isUpcoming ? '#f0f9f0' : 'white',
+                          padding: '20px',
+                          marginBottom: '15px',
+                          borderRadius: '8px',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <div className="appointment-details">
+                          <h4 style={{ margin: '0 0 10px 0' }}>
+                            {appointment.type}
+                            {isUpcoming && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#4CAF50', fontWeight: 'bold' }}>• UPCOMING</span>}
+                            {isPast && <span style={{ marginLeft: '8px', fontSize: '12px', color: '#999' }}>• PAST</span>}
+                          </h4>
+                          <p className="appointment-datetime" style={{ margin: '5px 0' }}>
+                            📅 {appointment.date} at {appointment.time}
+                          </p>
+                          <p className="appointment-provider" style={{ margin: '5px 0' }}>
+                            👤 {appointment.counselor}
+                          </p>
+                        </div>
+                        <div className="appointment-actions" style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <span className={`status-badge ${appointment.status}`} style={{
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            backgroundColor: '#e3f2fd',
+                            color: '#1976d2'
+                          }}>
+                            {appointment.status}
+                          </span>
+                          {!isPast && (
+                            <>
+                              <button
+                                className="action-btn small"
+                                onClick={() => alert('Reschedule feature coming soon!')}
+                                style={{
+                                  padding: '6px 12px',
+                                  fontSize: '14px',
+                                  border: '1px solid #ddd',
+                                  borderRadius: '6px',
+                                  backgroundColor: 'white',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Reschedule
+                              </button>
+                              <button
+                                className="action-btn small secondary"
+                                onClick={() => alert('Cancel feature coming soon!')}
+                                style={{
+                                  padding: '6px 12px',
+                                  fontSize: '14px',
+                                  border: '1px solid #f44336',
+                                  borderRadius: '6px',
+                                  backgroundColor: 'white',
+                                  color: '#f44336',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+              ) : (
+                <div className="no-appointments" style={{ padding: '40px', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
+                  <p style={{ fontSize: '48px', marginBottom: '10px' }}>📅</p>
+                  <p style={{ fontSize: '18px', marginBottom: '10px', fontWeight: '600' }}>No appointments yet</p>
+                  <p style={{ color: '#666', marginBottom: '20px' }}>Click "Book New Appointment" above to schedule your first session</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1194,85 +1382,125 @@ const analyzeCrisisRisk = (text) => {
                 />
               </div>
 
-              {/* Action Buttons - THIS IS WHERE THE API CALL SHOULD BE */}
+              {/* Action Buttons */}
               <div className="modal-actions">
-                <button 
+                <button
                   className="action-btn secondary"
-                  onClick={() => setShowAppointmentModal(false)}
+                  onClick={() => {
+                    setShowAppointmentModal(false);
+                    // Reset form
+                    setSelectedDate(new Date());
+                    setSelectedTime('');
+                    setSelectedCounselor('');
+                    setAppointmentNotes('');
+                  }}
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   className="action-btn primary"
                   onClick={async () => {
-                    console.log('Book Appointment button clicked!');
-                    
-                    if (selectedDate && selectedTime && selectedCounselor) {
-                      console.log('All fields selected, making API call...');
-                      
-                      try {
-                        // Get user data for API call
-                        const userData = JSON.parse(localStorage.getItem('mindbridge_user') || '{}');
-                        const userId = userData.id || 1;
-                        
-                        console.log('User ID:', userId);
-                        
-                        // Convert date and time to proper format for API
-                        const appointmentDateTime = new Date(selectedDate);
-                        const [time, period] = selectedTime.split(' ');
-                        const [hours, minutes] = time.split(':');
-                        let hour24 = parseInt(hours);
-                        
-                        // Convert to 24-hour format
-                        if (period === 'PM' && hour24 !== 12) hour24 += 12;
-                        if (period === 'AM' && hour24 === 12) hour24 = 0;
-                        
-                        appointmentDateTime.setHours(hour24, parseInt(minutes), 0, 0);
-                        
-                        console.log('Appointment DateTime:', appointmentDateTime.toISOString());
-                        
-                        // Make API call to save appointment
-                        console.log('Making API call to create appointment...');
-                        const result = await api.post('/api/appointments', {
-                          studentId: userId,
-                          counselorId: 3, // Counselor user ID from database
-                          appointmentDate: appointmentDateTime.toISOString(),
-                          notes: appointmentNotes || 'Appointment booked via dashboard'
+                    console.log('📅 Book Appointment button clicked');
+
+                    // Validate all required fields
+                    if (!selectedDate || !selectedTime || !selectedCounselor) {
+                      console.warn('⚠️ Missing required fields:', { selectedDate, selectedTime, selectedCounselor });
+                      alert('Please select a date, time, and counselor.');
+                      return;
+                    }
+
+                    try {
+                      // Get user data for API call
+                      const userData = JSON.parse(localStorage.getItem('mindbridge_user') || '{}');
+                      const userId = userData.id;
+
+                      if (!userId) {
+                        alert('Please log in again to book an appointment.');
+                        navigate('/login');
+                        return;
+                      }
+
+                      console.log('👤 User ID:', userId);
+                      console.log('📋 Selected counselor:', selectedCounselor);
+
+                      // Map counselor names to IDs (based on database)
+                      const counselorMap = {
+                        'Dr. Maria Rodriguez': 3,
+                        'Dr. Sarah Mitchell': 3, // Fallback to ID 3 if not found
+                        'Dr. James Chen': 3,
+                        'Dr. Emily Thompson': 3
+                      };
+
+                      const counselorId = counselorMap[selectedCounselor] || 3;
+                      console.log('🔢 Using counselor ID:', counselorId);
+
+                      // Convert date and time to proper format for API
+                      const appointmentDateTime = new Date(selectedDate);
+                      const [time, period] = selectedTime.split(' ');
+                      const [hours, minutes] = time.split(':');
+                      let hour24 = parseInt(hours);
+
+                      // Convert to 24-hour format
+                      if (period === 'PM' && hour24 !== 12) hour24 += 12;
+                      if (period === 'AM' && hour24 === 12) hour24 = 0;
+
+                      appointmentDateTime.setHours(hour24, parseInt(minutes), 0, 0);
+
+                      console.log('🕐 Appointment DateTime:', appointmentDateTime.toISOString());
+
+                      // Make API call to save appointment
+                      console.log('🌐 Making API call to create appointment...');
+                      const result = await api.post('/api/appointments', {
+                        studentId: userId,
+                        counselorId: counselorId,
+                        appointmentDate: appointmentDateTime.toISOString(),
+                        notes: appointmentNotes || 'Appointment booked via dashboard'
+                      });
+
+                      console.log('✅ API Response:', result);
+
+                      if (result && result.success) {
+                        console.log('✅ Appointment created successfully with ID:', result.data.id);
+
+                        // Store confirmed appointment details for modal
+                        setConfirmedAppointment({
+                          date: selectedDate,
+                          time: selectedTime,
+                          counselor: selectedCounselor,
+                          notes: appointmentNotes
                         });
 
-                        console.log('Appointment created successfully:', result);
+                        // Close booking modal
+                        setShowAppointmentModal(false);
 
-                        if (result.success) {
-                          
-                          // Store confirmed appointment details for modal
-                          setConfirmedAppointment({
-                            date: selectedDate,
-                            time: selectedTime,
-                            counselor: selectedCounselor,
-                            notes: appointmentNotes
-                          });
-                          
-                          // Close booking modal and show confirmation
-                          setShowAppointmentModal(false);
-                          setShowConfirmationModal(true);
-                          
-                          // Refresh appointments list to show new appointment
-                          console.log('Refreshing appointments list...');
-                          loadDashboardData();
-                          
-                          // Reset form
-                          setSelectedDate(new Date());
-                          setSelectedTime('');
-                          setSelectedCounselor('');
-                          setAppointmentNotes('');
-                        }
-                      } catch (error) {
-                        console.error('Error booking appointment:', error);
-                        alert('Error booking appointment. Please try again.');
+                        // Refresh appointments list BEFORE showing confirmation
+                        console.log('🔄 Refreshing appointments list...');
+                        await loadDashboardData();
+                        console.log('✅ Appointments list refreshed');
+
+                        // Show confirmation modal
+                        setShowConfirmationModal(true);
+
+                        // Reset form
+                        setSelectedDate(new Date());
+                        setSelectedTime('');
+                        setSelectedCounselor('');
+                        setAppointmentNotes('');
+                      } else {
+                        console.error('❌ API returned unsuccessful response:', result);
+                        alert('Failed to book appointment. Please try again.');
                       }
-                    } else {
-                      console.log('Missing required fields');
-                      alert('Please select a date, time, and counselor.');
+                    } catch (error) {
+                      console.error('❌ Error booking appointment:', error);
+                      console.error('Error details:', error.message, error.stack);
+
+                      // Show more specific error message
+                      if (error.message.includes('token') || error.message.includes('Session')) {
+                        alert('Your session has expired. Please log in again.');
+                        navigate('/login');
+                      } else {
+                        alert('Error booking appointment: ' + error.message + '\n\nPlease try again or contact support.');
+                      }
                     }
                   }}
                 >
@@ -1374,6 +1602,146 @@ const analyzeCrisisRisk = (text) => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Mood Success Modal - Interactive Success Page */}
+      {showMoodSuccess && loggedMoodData && (
+        <div className="modal-overlay" onClick={() => setShowMoodSuccess(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            {/* Success Header */}
+            <div style={{ textAlign: 'center', padding: '30px 20px 20px' }}>
+              <div style={{ fontSize: '80px', marginBottom: '15px' }}>
+                {loggedMoodData.moodEmoji}
+              </div>
+              <h2 style={{ margin: '0 0 10px 0', color: '#4CAF50' }}>Mood Logged Successfully! 🌟</h2>
+              <p style={{ color: '#666', fontSize: '16px' }}>
+                {loggedMoodData.timestamp.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}
+              </p>
+            </div>
+
+            {/* Mood Summary */}
+            <div style={{
+              backgroundColor: '#f5f5f5',
+              padding: '20px',
+              borderRadius: '12px',
+              margin: '20px'
+            }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>Your Mood: <strong style={{ textTransform: 'capitalize' }}>{loggedMoodData.mood}</strong></h3>
+              {loggedMoodData.notes && (
+                <div>
+                  <p style={{ margin: '10px 0 5px', fontWeight: '600', color: '#555' }}>Your Note:</p>
+                  <p style={{
+                    margin: '0',
+                    padding: '12px',
+                    backgroundColor: 'white',
+                    borderRadius: '8px',
+                    fontStyle: 'italic',
+                    color: '#333'
+                  }}>
+                    "{loggedMoodData.notes}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Personalized Suggestions */}
+            <div style={{ padding: '0 20px 20px' }}>
+              <h3 style={{ fontSize: '18px', marginBottom: '15px' }}>
+                {loggedMoodData.analysis.level >= 3 ? '💙 Suggestions for You:' : '💚 Keep it Up!'}
+              </h3>
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0
+              }}>
+                {loggedMoodData.analysis.suggestions.map((suggestion, index) => (
+                  <li key={index} style={{
+                    padding: '12px',
+                    marginBottom: '10px',
+                    backgroundColor: '#e8f5e9',
+                    borderRadius: '8px',
+                    borderLeft: '4px solid #4CAF50',
+                    fontSize: '15px'
+                  }}>
+                    <span style={{ marginRight: '8px' }}>
+                      {loggedMoodData.analysis.level >= 3 ? '💡' : '🌟'}
+                    </span>
+                    {suggestion}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Mood Tracking Streak/Stats */}
+            <div style={{
+              backgroundColor: '#fff3e0',
+              padding: '15px 20px',
+              margin: '20px',
+              borderRadius: '12px',
+              textAlign: 'center'
+            }}>
+              <p style={{ margin: 0, fontSize: '16px' }}>
+                <strong>🔥 Great job tracking your mental health!</strong>
+              </p>
+              <p style={{ margin: '5px 0 0', color: '#666', fontSize: '14px' }}>
+                You're building healthy habits one entry at a time
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              padding: '20px',
+              borderTop: '1px solid #eee'
+            }}>
+              <button
+                className="action-btn secondary"
+                onClick={() => {
+                  setShowMoodSuccess(false);
+                  setSelectedTab('mood');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: '2px solid #4CAF50',
+                  backgroundColor: 'white',
+                  color: '#4CAF50',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                View Mood History
+              </button>
+              <button
+                className="action-btn primary"
+                onClick={() => setShowMoodSuccess(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                Continue to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       )}
