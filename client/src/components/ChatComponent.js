@@ -34,31 +34,22 @@ function ChatComponent({ userId = 1, userType = 'student' }) {
 
     // Connection event handlers
     newSocket.on('connect', () => {
-      console.log('✓ Connected to Socket.io server');
-      console.log('👤 Authenticating as userId:', userId, 'userType:', userType);
       setIsConnected(true);
 
       // Authenticate user and join chat room
       newSocket.emit('authenticate', { userId, userType });
-      console.log('📤 Sent authenticate event');
     });
 
     newSocket.on('disconnect', () => {
-      console.log('✗ Disconnected from Socket.io server');
       setIsConnected(false);
       setChatStatus('disconnected');
     });
 
     // Listen for chat ready event (with history)
     newSocket.on('chat_ready', (data) => {
-      console.log('📋 Chat ready event received:', data);
-      console.log('🔑 Chat Room ID:', data.chatRoomId);
-      console.log('📊 Status:', data.status);
-
       if (data.chatRoomId) {
         setChatRoomId(data.chatRoomId);
         setChatStatus(data.status);
-        console.log('✅ Chat room ID set:', data.chatRoomId);
 
         // Load chat history
         if (data.history && data.history.length > 0) {
@@ -90,7 +81,6 @@ function ChatComponent({ userId = 1, userType = 'student' }) {
 
     // Listen for incoming messages
     newSocket.on('chat_message', (data) => {
-      console.log('📨 Received chat_message:', data);
       setMessages(prev => [...prev, {
         id: data.id,
         text: data.message,
@@ -128,7 +118,7 @@ function ChatComponent({ userId = 1, userType = 'student' }) {
 
     // Listen for welcome message (initial connection)
     newSocket.on('welcome', (data) => {
-      console.log('👋 Welcome message received:', data);
+      // Welcome message received (debug log removed for production)
     });
 
     // Cleanup on component unmount
@@ -178,7 +168,6 @@ function ChatComponent({ userId = 1, userType = 'student' }) {
     };
 
     // Send message to server (don't add locally - wait for broadcast)
-    console.log('📤 Sending message:', messageData);
     socket.emit('chat_message', messageData);
 
     // Clear input

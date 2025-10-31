@@ -97,7 +97,7 @@ function CounselorDashboard() {
   const loadDashboardData = async () => {
   try {
     // Fetch real crisis alerts from API
-    const alertsResponse = await fetch('http://localhost:5000/api/crisis/alerts');
+    const alertsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/crisis/alerts`);
     const alertsData = await alertsResponse.json();
 
     if (alertsData.success) {
@@ -105,7 +105,7 @@ function CounselorDashboard() {
     }
 
     // Fetch real crisis analytics from API
-    const analyticsResponse = await fetch('http://localhost:5000/api/crisis/analytics');
+    const analyticsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/crisis/analytics`);
     const analyticsData = await analyticsResponse.json();
 
     if (analyticsData.success) {
@@ -115,7 +115,7 @@ function CounselorDashboard() {
     // Fetch real appointments from API
     // Using counselor ID from currentUser (assuming counselor has an ID)
     const counselorId = 2; // Replace with actual counselor ID from auth/session
-    const appointmentsResponse = await fetch(`http://localhost:5000/api/appointments/${counselorId}`);
+    const appointmentsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/appointments/${counselorId}`);
     const appointmentsData = await appointmentsResponse.json();
 
     // Declare formattedAppointments at higher scope
@@ -145,7 +145,8 @@ function CounselorDashboard() {
       setAppointments([]);
     }
 
-    // Keep existing mock data for students (for now)
+    // ⚠️ MOCK DATA - Replace with real student case data from API
+    // TODO: Create /api/counselor/students endpoint for assigned student cases
     setStudents([
       {
         id: 1,
@@ -186,7 +187,7 @@ function CounselorDashboard() {
     ]);
 
     // Load resources from backend
-    const resourcesResponse = await fetch('http://localhost:5000/api/resources');
+    const resourcesResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/resources`);
     const resourcesData = await resourcesResponse.json();
     if (resourcesData.success) {
       setResources(resourcesData.data);
@@ -511,7 +512,7 @@ function CounselorDashboard() {
       // Combine date and time into a datetime
       const appointmentDateTime = new Date(`${appointmentForm.date}T${appointmentForm.time}`);
 
-      const response = await fetch('http://localhost:5000/api/appointments', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
