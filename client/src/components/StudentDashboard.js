@@ -57,8 +57,14 @@ function StudentDashboard() {
   // Chat state - track if chat is active in Peer Support tab
   const [isChatActive, setIsChatActive] = useState(false);
 
-  // Coming Soon modal state
-  const [showComingSoon, setShowComingSoon] = useState(false);
+  // Coming Soon modal state - Disabled until peer support features are implemented
+  // const [showComingSoon, setShowComingSoon] = useState(false);
+
+  // Loading states for data fetching
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+  // Additional granular loading states can be added later if needed
+  // const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
+  // const [isLoadingMood, setIsLoadingMood] = useState(false);
 
    // Appointment modal state variables
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -79,10 +85,7 @@ function StudentDashboard() {
     if (!confirmed) return;
 
     try {
-      const result = await api.put(`/api/appointments/${appointmentId}`, {
-        status: 'cancelled',
-        notes: 'Cancelled by student via dashboard'
-      });
+      const result = await api.delete(`/api/appointments/${appointmentId}`);
 
       if (result && result.success) {
         alert('Appointment cancelled successfully.');
@@ -205,16 +208,14 @@ const analyzeCrisisRisk = (text) => {
     };
   };
 
-  // NEW: Alert counselors for high-risk situations
+  // NOTE: Crisis alerts are automatically created by the backend
+  // when mood entries are submitted with notes (see /api/mood endpoint)
+  // The backend analyzes text for crisis keywords and creates alerts in the database
+  // Counselors can view these alerts on their dashboard via /api/crisis/alerts
   const alertCounselors = async (analysis, userInfo, moodData) => {
-    if (analysis.level >= 7) {
-      try {
-        // Crisis alert for counselor dashboard (removed debug logs for production)
-        // In a real implementation, this would send alerts to counselors
-      } catch (error) {
-        console.error('Error sending crisis alert:', error);
-      }
-    }
+    // Crisis detection and alert creation is handled server-side
+    // when mood is logged. No additional client-side action needed.
+    // The backend creates entries in the crisis_alerts table automatically.
   };
 
   // Helper function to convert mood level (1-5) to text
@@ -231,11 +232,12 @@ const analyzeCrisisRisk = (text) => {
 
   // Load dashboard data with real API integration
   const loadDashboardData = useCallback(async () => {
-    // Load resources from backend (public endpoint, no auth needed)
+    setIsLoadingDashboard(true);
+
+    // Load resources from backend
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/resources`);
-      if (response.ok) {
-        const data = await response.json();
+      const data = await api.get('/api/resources');
+      if (data.success) {
         setResources(data.data.slice(0, 4)); // Show first 4 resources
       }
     } catch (error) {
@@ -376,6 +378,8 @@ const analyzeCrisisRisk = (text) => {
         { day: 'Friday', time: '1:00 PM - 3:00 PM', available: false }
       ]);
     }
+
+    setIsLoadingDashboard(false);
   }, [isPeerSupporter]);
 
   // Load data when component mounts
@@ -474,6 +478,33 @@ const analyzeCrisisRisk = (text) => {
 
   return (
     <div className="dashboard-container">
+      {/* Loading Spinner */}
+      {isLoadingDashboard && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #667eea',
+            borderRadius: '50%',
+            width: '50px',
+            height: '50px',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ marginTop: '20px', color: '#667eea', fontSize: '16px' }}>Loading your dashboard...</p>
+        </div>
+      )}
+
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-content">
@@ -810,38 +841,22 @@ const analyzeCrisisRisk = (text) => {
                           }}>
                             {appointment.status}
                           </span>
-                          {!isPast && (
-                            <>
-                              <button
-                                className="action-btn small"
-                                onClick={() => alert('Reschedule feature coming soon!')}
-                                style={{
-                                  padding: '6px 12px',
-                                  fontSize: '14px',
-                                  border: '1px solid #ddd',
-                                  borderRadius: '6px',
-                                  backgroundColor: 'white',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Reschedule
-                              </button>
-                              <button
-                                className="action-btn small secondary"
-                                onClick={() => alert('Cancel feature coming soon!')}
-                                style={{
-                                  padding: '6px 12px',
-                                  fontSize: '14px',
-                                  border: '1px solid #f44336',
-                                  borderRadius: '6px',
-                                  backgroundColor: 'white',
-                                  color: '#f44336',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            </>
+                          {!isPast && appointment.status === 'scheduled' && (
+                            <button
+                              className="action-btn small secondary"
+                              onClick={() => handleCancelAppointment(appointment.id)}
+                              style={{
+                                padding: '6px 12px',
+                                fontSize: '14px',
+                                border: '1px solid #f44336',
+                                borderRadius: '6px',
+                                backgroundColor: 'white',
+                                color: '#f44336',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Cancel
+                            </button>
                           )}
                         </div>
                       </div>
@@ -870,6 +885,7 @@ const analyzeCrisisRisk = (text) => {
                     <h2>Peer Support Network</h2>
 
                     <div className="support-options">
+                      {/* Peer Support and Groups features - Coming in future update
                       <div className="support-card">
                         <h3>🤝 Connect with Peer Supporters</h3>
                         <p>Chat with trained student volunteers who understand your experience.</p>
@@ -891,6 +907,7 @@ const analyzeCrisisRisk = (text) => {
                           Browse Groups
                         </button>
                       </div>
+                      */}
 
                       <div className="support-card">
                         <h3>💬 Anonymous Chat</h3>
@@ -1714,7 +1731,7 @@ const analyzeCrisisRisk = (text) => {
         </div>
       )}
 
-      {/* Coming Soon Modal */}
+      {/* Coming Soon Modal - Disabled until peer support features are implemented
       {showComingSoon && (
         <div className="modal-overlay" onClick={() => setShowComingSoon(false)}>
           <div className="modal-content coming-soon-modal" onClick={(e) => e.stopPropagation()}>
@@ -1731,6 +1748,7 @@ const analyzeCrisisRisk = (text) => {
           </div>
         </div>
       )}
+      */}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -26,12 +27,10 @@ function AdminDashboard() {
   const loadDashboardData = async () => {
   try {
     // Fetch real crisis statistics from API
-    const crisisStatsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/crisis/statistics`);
-    const crisisStatsData = await crisisStatsResponse.json();
+    const crisisStatsData = await api.get('/api/admin/crisis/statistics');
 
     // Fetch real platform statistics from API
-    const platformStatsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/platform/statistics`);
-    const platformStatsData = await platformStatsResponse.json();
+    const platformStatsData = await api.get('/api/admin/platform/statistics');
     
     if (crisisStatsData.success && platformStatsData.success) {
       // Combine platform stats with crisis data
@@ -880,13 +879,6 @@ function AdminDashboard() {
               
               <div className="dashboard-card settings-section">
                 <h3>🔐 Security Settings</h3>
-                <div className="setting-item">
-                  <label>Two-Factor Authentication</label>
-                  <div className="toggle-switch">
-                    <input type="checkbox" defaultChecked />
-                    <span className="toggle-slider"></span>
-                  </div>
-                </div>
                 <div className="setting-item">
                   <label>Session Timeout (minutes)</label>
                   <input type="number" defaultValue="60" />

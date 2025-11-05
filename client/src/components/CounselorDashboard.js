@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 
 function CounselorDashboard() {
   const navigate = useNavigate();
@@ -32,6 +33,9 @@ function CounselorDashboard() {
     duration: '50 minutes',
     notes: ''
   });
+
+  // Loading states
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
 
   // Load dashboard data
   useEffect(() => {
@@ -95,18 +99,17 @@ function CounselorDashboard() {
   };
 
   const loadDashboardData = async () => {
+  setIsLoadingDashboard(true);
   try {
     // Fetch real crisis alerts from API
-    const alertsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/crisis/alerts`);
-    const alertsData = await alertsResponse.json();
+    const alertsData = await api.get('/api/crisis/alerts');
 
     if (alertsData.success) {
       setCrisisAlerts(alertsData.data);
     }
 
     // Fetch real crisis analytics from API
-    const analyticsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/crisis/analytics`);
-    const analyticsData = await analyticsResponse.json();
+    const analyticsData = await api.get('/api/crisis/analytics');
 
     if (analyticsData.success) {
       setCrisisAnalytics(analyticsData.data);
@@ -115,8 +118,7 @@ function CounselorDashboard() {
     // Fetch real appointments from API
     // Using counselor ID from currentUser (assuming counselor has an ID)
     const counselorId = 2; // Replace with actual counselor ID from auth/session
-    const appointmentsResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/appointments/${counselorId}`);
-    const appointmentsData = await appointmentsResponse.json();
+    const appointmentsData = await api.get(`/api/appointments/${counselorId}`);
 
     // Declare formattedAppointments at higher scope
     let formattedAppointments = [];
@@ -187,8 +189,7 @@ function CounselorDashboard() {
     ]);
 
     // Load resources from backend
-    const resourcesResponse = await fetch(`${process.env.REACT_APP_API_URL}/api/resources`);
-    const resourcesData = await resourcesResponse.json();
+    const resourcesData = await api.get('/api/resources');
     if (resourcesData.success) {
       setResources(resourcesData.data);
     }
@@ -293,6 +294,8 @@ function CounselorDashboard() {
     setCrisisAlerts([]);
     setCrisisAnalytics({});
     setAppointments([]);
+  } finally {
+    setIsLoadingDashboard(false);
   }
 };
 
@@ -512,20 +515,12 @@ function CounselorDashboard() {
       // Combine date and time into a datetime
       const appointmentDateTime = new Date(`${appointmentForm.date}T${appointmentForm.time}`);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/appointments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          studentId: parseInt(appointmentForm.studentId),
-          counselorId: 2, // Current counselor ID (should come from auth)
-          appointmentDate: appointmentDateTime.toISOString(),
-          notes: `${appointmentForm.type} - ${appointmentForm.duration}${appointmentForm.notes ? '. ' + appointmentForm.notes : ''}`
-        })
+      const data = await api.post('/api/appointments', {
+        studentId: parseInt(appointmentForm.studentId),
+        counselorId: 2, // Current counselor ID (should come from auth)
+        appointmentDate: appointmentDateTime.toISOString(),
+        notes: `${appointmentForm.type} - ${appointmentForm.duration}${appointmentForm.notes ? '. ' + appointmentForm.notes : ''}`
       });
-
-      const data = await response.json();
 
       if (data.success) {
         alert('Appointment scheduled successfully!');
@@ -553,6 +548,33 @@ function CounselorDashboard() {
 
   return (
     <div className="dashboard-container">
+      {/* Loading Spinner */}
+      {isLoadingDashboard && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            border: '4px solid #f3f3f3',
+            borderTop: '4px solid #667eea',
+            borderRadius: '50%',
+            width: '50px',
+            height: '50px',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ marginTop: '20px', color: '#667eea', fontSize: '16px' }}>Loading dashboard...</p>
+        </div>
+      )}
+
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-content">
