@@ -22,6 +22,17 @@ function UnifiedLogin() {
   // Advanced state for multi-step authentication (when needed for admins)
   const [authStep, setAuthStep] = useState(1);
 
+  // Password reset state
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // 1: Enter email, 2: Enter code & new password
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
+  const [generatedCode, setGeneratedCode] = useState(''); // For development - shows the code
+
   // Institutionally-aware user type detection
   const detectUserType = (identifier) => {
     if (!identifier) return null;
@@ -102,24 +113,9 @@ function UnifiedLogin() {
 
     // Handle multi-step authentication for administrators
     if (userType === 'admin') {
-      if (authStep === 1) {
-        if (!additionalFields.institutionCode) {
-          setErrorMessage('Institution code is required for administrative access.');
-          return;
-        }
-
-        setIsLoading(true);
-        setTimeout(() => {
-          setIsLoading(false);
-          setAuthStep(2);
-          alert('Two-factor authentication required. Please enter the verification code sent to your device.');
-        }, 1500);
+      if (!additionalFields.institutionCode) {
+        setErrorMessage('Institution code is required for administrative access.');
         return;
-      } else {
-        if (!additionalFields.twoFactorCode || additionalFields.twoFactorCode.length !== 6) {
-          setErrorMessage('Please enter the complete 6-digit verification code.');
-          return;
-        }
       }
     }
 
@@ -166,6 +162,96 @@ const dashboardPath = `/dashboard/${dashboardType}${isPeer ? '?peer=true' : ''}`
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Password reset handlers
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setResetError('');
+    setResetMessage('');
+
+    if (!resetEmail) {
+      setResetError('Please enter your email address');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setGeneratedCode(result.resetCode || ''); // For development
+        setResetMessage(result.message);
+        setResetStep(2);
+      } else {
+        setResetError(result.error || 'Failed to generate reset code');
+      }
+    } catch (error) {
+      setResetError('Unable to connect to server. Please try again.');
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setResetError('');
+    setResetMessage('');
+
+    if (!resetCode || !newPassword || !confirmPassword) {
+      setResetError('All fields are required');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setResetError('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setResetError('Password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: resetEmail,
+          resetCode: resetCode,
+          newPassword: newPassword
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setResetMessage('Password reset successful! You can now log in with your new password.');
+        setTimeout(() => {
+          closeResetModal();
+        }, 2000);
+      } else {
+        setResetError(result.error || 'Failed to reset password');
+      }
+    } catch (error) {
+      setResetError('Unable to connect to server. Please try again.');
+    }
+  };
+
+  const closeResetModal = () => {
+    setShowResetModal(false);
+    setResetStep(1);
+    setResetEmail('');
+    setResetCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setResetMessage('');
+    setResetError('');
+    setGeneratedCode('');
   };
 
   return (
@@ -274,27 +360,6 @@ const dashboardPath = `/dashboard/${dashboardType}${isPeer ? '?peer=true' : ''}`
             </div>
           )}
 
-          {/* Two-factor authentication for step 2 of admin authentication */}
-          {userType === 'admin' && authStep === 2 && (
-            <div className="form-group">
-              <label htmlFor="twoFactorCode">Verification Code</label>
-              <input
-                type="text"
-                id="twoFactorCode"
-                name="twoFactorCode"
-                value={additionalFields.twoFactorCode || ''}
-                onChange={handleInputChange}
-                placeholder="Enter 6-digit code"
-                maxLength="6"
-                required
-                disabled={isLoading}
-              />
-              <small className="field-help">
-                Enter the verification code sent to your registered device
-              </small>
-            </div>
-          )}
-
           {/* Universal password field */}
           <div className="form-group">
             <label htmlFor="password">Password</label>
@@ -341,7 +406,7 @@ const dashboardPath = `/dashboard/${dashboardType}${isPeer ? '?peer=true' : ''}`
             <button
               type="button"
               className="link-button"
-              onClick={() => alert('Password reset functionality will be implemented in INFO 4290!')}
+              onClick={() => setShowResetModal(true)}
             >
               Forgot password?
             </button>
@@ -377,6 +442,131 @@ const dashboardPath = `/dashboard/${dashboardType}${isPeer ? '?peer=true' : ''}`
           </div>
         </div>
       </div>
+
+      {/* Password Reset Modal */}
+      {showResetModal && (
+        <div className="modal-overlay" onClick={closeResetModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{resetStep === 1 ? 'Reset Password' : 'Enter Reset Code'}</h2>
+              <button className="modal-close" onClick={closeResetModal}>×</button>
+            </div>
+
+            <div className="modal-body">
+              {resetMessage && (
+                <div className="success-message" style={{
+                  padding: '12px',
+                  backgroundColor: '#d4edda',
+                  color: '#155724',
+                  borderRadius: '4px',
+                  marginBottom: '15px'
+                }}>
+                  {resetMessage}
+                </div>
+              )}
+
+              {resetError && (
+                <div className="error-message" style={{
+                  padding: '12px',
+                  backgroundColor: '#f8d7da',
+                  color: '#721c24',
+                  borderRadius: '4px',
+                  marginBottom: '15px'
+                }}>
+                  {resetError}
+                </div>
+              )}
+
+              {resetStep === 1 ? (
+                <form onSubmit={handleForgotPassword}>
+                  <div className="form-group">
+                    <label htmlFor="reset-email">Email Address</label>
+                    <input
+                      type="email"
+                      id="reset-email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="Enter your KPU email"
+                      required
+                    />
+                  </div>
+
+                  <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+                    Generate Reset Code
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleResetPassword}>
+                  {generatedCode && (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#fff3cd',
+                      color: '#856404',
+                      borderRadius: '4px',
+                      marginBottom: '15px',
+                      fontSize: '14px'
+                    }}>
+                      <strong>Development Mode:</strong> Your reset code is: <strong>{generatedCode}</strong>
+                      <br />
+                      <small>(In production, this would be sent via email)</small>
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label htmlFor="reset-code">Reset Code</label>
+                    <input
+                      type="text"
+                      id="reset-code"
+                      value={resetCode}
+                      onChange={(e) => setResetCode(e.target.value)}
+                      placeholder="Enter 6-digit code"
+                      maxLength="6"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="new-password">New Password</label>
+                    <input
+                      type="password"
+                      id="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="confirm-password">Confirm Password</label>
+                    <input
+                      type="password"
+                      id="confirm-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      required
+                    />
+                  </div>
+
+                  <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '10px' }}>
+                    Reset Password
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setResetStep(1)}
+                    className="btn-secondary"
+                    style={{ width: '100%', marginTop: '10px' }}
+                  >
+                    Back
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

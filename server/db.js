@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const logger = require('./logger');
 
 // Database configuration using environment variables
 const pool = new Pool({
@@ -11,11 +12,11 @@ const pool = new Pool({
 
 // Test database connection
 pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
+  logger.info('Connected to PostgreSQL database');
 });
 
 pool.on('error', (err) => {
-  console.error('Database connection error:', err);
+  logger.error('Database connection error:', err);
 });
 
 module.exports = pool;

@@ -5,8 +5,10 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const http = require('http');
 const { Server } = require('socket.io');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const pool = require('./db'); // Import our database connection
+const logger = require('./logger'); // Import Winston logger
 
 
 // Create Express application
@@ -48,7 +50,7 @@ io.use((socket, next) => {
       next();
     });
   } catch (error) {
-    console.error('Socket authentication error:', error);
+    logger.error('Socket authentication error:', error);
     next(new Error('Authentication error'));
   }
 });
@@ -64,8 +66,67 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
-app.use(morgan('dev')); // Log HTTP requests
+app.use(morgan('combined', { stream: logger.stream })); // Log HTTP requests through Winston
 app.use(express.json()); // Parse JSON request bodies
+
+// ============================================================================
+// RATE LIMITING - Prevent abuse and DoS attacks
+// ============================================================================
+
+// Strict rate limiter for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: {
+    success: false,
+    error: 'Too many login attempts from this IP, please try again after 15 minutes'
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Rate limiter for registration
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Limit each IP to 3 account creations per hour
+  message: {
+    success: false,
+    error: 'Too many accounts created from this IP, please try again after an hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for password reset
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each IP to 3 password reset requests per 15 minutes
+  message: {
+    success: false,
+    error: 'Too many password reset attempts, please try again after 15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// General API rate limiter - less strict for authenticated requests
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per 15 minutes
+  message: {
+    success: false,
+    error: 'Too many requests from this IP, please try again later'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health check and root endpoint
+    return req.path === '/api/health' || req.path === '/';
+  }
+});
+
+// Apply general rate limiter to all /api/* routes
+app.use('/api/', apiLimiter);
 
 // Basic route to test server is working
 app.get('/', (req, res) => {
@@ -97,7 +158,7 @@ app.get('/api/resources', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Database query error:', error);
+    logger.error('Database query error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch resources from database',
@@ -110,12 +171,13 @@ app.get('/api/resources', async (req, res) => {
 // Import bcrypt and jwt for authentication
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 // Import authentication middleware
 const { authenticateToken, authorizeRoles } = require('./middleware/auth');
 
 // User authentication endpoint
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     
@@ -178,7 +240,7 @@ app.post('/api/auth/login', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -187,7 +249,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // User registration endpoint
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', registerLimiter, async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
 
@@ -231,12 +293,21 @@ app.post('/api/auth/register', async (req, res) => {
     // Hash password with bcrypt (10 salt rounds)
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert new user into database
+    // Generate email verification token (32 bytes = 64 hex characters)
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
+    // Set token expiration to 24 hours from now
+    const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // Insert new user into database with verification fields
     const result = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, user_type)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, first_name, last_name, user_type`,
-      [email, hashedPassword, firstName, lastName, userType]
+      `INSERT INTO users (
+        email, password_hash, first_name, last_name, user_type,
+        is_email_verified, email_verification_token, verification_token_expires_at
+       )
+       VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7)
+       RETURNING id, email, first_name, last_name, user_type, is_email_verified`,
+      [email, hashedPassword, firstName, lastName, userType, verificationToken, tokenExpiration]
     );
 
     const newUser = result.rows[0];
@@ -252,7 +323,11 @@ app.post('/api/auth/register', async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
 
+    // Generate verification URL
+    const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email/${verificationToken}`;
+
     // Return user info and token
+    // NOTE: In production, send verification link via email instead of returning it
     res.status(201).json({
       success: true,
       token,
@@ -261,13 +336,300 @@ app.post('/api/auth/register', async (req, res) => {
         email: newUser.email,
         firstName: newUser.first_name,
         lastName: newUser.last_name,
-        userType: newUser.user_type
+        userType: newUser.user_type,
+        isEmailVerified: newUser.is_email_verified
       },
+      // DEVELOPMENT ONLY - Remove in production
+      verificationUrl: verificationUrl,
+      message: 'Registration successful! Please verify your email address.',
+      note: 'In production, verification link would be sent via email',
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Email verification endpoint
+app.get('/api/auth/verify-email/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Verification token is required'
+      });
+    }
+
+    // Find user with this verification token
+    const result = await pool.query(
+      `SELECT id, email, first_name, is_email_verified, verification_token_expires_at
+       FROM users
+       WHERE email_verification_token = $1`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired verification token'
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Check if email is already verified
+    if (user.is_email_verified) {
+      return res.json({
+        success: true,
+        message: 'Email already verified. You can log in now.',
+        alreadyVerified: true
+      });
+    }
+
+    // Check if token has expired
+    if (new Date() > new Date(user.verification_token_expires_at)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Verification token has expired. Please request a new one.',
+        expired: true
+      });
+    }
+
+    // Mark email as verified and clear the token
+    await pool.query(
+      `UPDATE users
+       SET is_email_verified = TRUE,
+           email_verification_token = NULL,
+           verification_token_expires_at = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [user.id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully! You can now log in.',
+      user: {
+        email: user.email,
+        firstName: user.first_name
+      }
+    });
+
+  } catch (error) {
+    logger.error('Email verification error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to verify email'
+    });
+  }
+});
+
+// Resend verification email endpoint
+app.post('/api/auth/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    // Find user by email
+    const result = await pool.query(
+      'SELECT id, email, is_email_verified FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      // Don't reveal if email exists or not (security)
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, a verification link has been sent'
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Check if already verified
+    if (user.is_email_verified) {
+      return res.json({
+        success: true,
+        message: 'Email is already verified',
+        alreadyVerified: true
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiration = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    // Update user with new token
+    await pool.query(
+      `UPDATE users
+       SET email_verification_token = $1,
+           verification_token_expires_at = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`,
+      [verificationToken, tokenExpiration, user.id]
+    );
+
+    // Generate verification URL
+    const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email/${verificationToken}`;
+
+    // In production, send email here
+    res.json({
+      success: true,
+      message: 'Verification email sent successfully',
+      // DEVELOPMENT ONLY - Remove in production
+      verificationUrl: verificationUrl,
+      note: 'In production, verification link would be sent via email'
+    });
+
+  } catch (error) {
+    logger.error('Resend verification error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to resend verification email'
+    });
+  }
+});
+
+// Password reset functionality - In-memory storage for reset codes
+// NOTE: In production, use database table with expiration timestamps
+const passwordResetCodes = new Map(); // email -> { code, expiresAt }
+
+// Request password reset - generates and returns code
+app.post('/api/auth/forgot-password', passwordResetLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email is required'
+      });
+    }
+
+    // Check if user exists
+    const result = await pool.query(
+      'SELECT id, email, first_name FROM users WHERE email = $1 AND is_active = true',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      // For security, don't reveal if email exists or not
+      // But still return success to prevent email enumeration
+      return res.json({
+        success: true,
+        message: 'If an account exists with this email, a reset code has been generated'
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Generate 6-digit reset code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store code with 15-minute expiration
+    passwordResetCodes.set(email, {
+      code: resetCode,
+      expiresAt: Date.now() + 15 * 60 * 1000, // 15 minutes
+      userId: user.id
+    });
+
+    // In production, send email here. For development, return code in response
+    res.json({
+      success: true,
+      message: 'Password reset code generated',
+      // DEVELOPMENT ONLY: Remove in production
+      resetCode: resetCode,
+      note: 'In production, this code would be sent via email'
+    });
+
+  } catch (error) {
+    logger.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Reset password with code
+app.post('/api/auth/reset-password', passwordResetLimiter, async (req, res) => {
+  try {
+    const { email, resetCode, newPassword } = req.body;
+
+    if (!email || !resetCode || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email, reset code, and new password are required'
+      });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Check if reset code exists and is valid
+    const storedData = passwordResetCodes.get(email);
+
+    if (!storedData) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid or expired reset code'
+      });
+    }
+
+    // Check if code has expired
+    if (Date.now() > storedData.expiresAt) {
+      passwordResetCodes.delete(email);
+      return res.status(400).json({
+        success: false,
+        error: 'Reset code has expired. Please request a new one'
+      });
+    }
+
+    // Verify reset code
+    if (storedData.code !== resetCode) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid reset code'
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password in database
+    await pool.query(
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE email = $2',
+      [hashedPassword, email]
+    );
+
+    // Remove used reset code
+    passwordResetCodes.delete(email);
+
+    res.json({
+      success: true,
+      message: 'Password reset successful. You can now log in with your new password'
+    });
+
+  } catch (error) {
+    logger.error('Reset password error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
@@ -303,7 +665,7 @@ app.get('/api/mood/:userId', authenticateToken, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mood fetch error:', error);
+    logger.error('Mood fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch mood entries'
@@ -350,7 +712,7 @@ app.post('/api/mood', authenticateToken, async (req, res) => {
           [userId, crisisAnalysis.alertType, crisisAnalysis.severity, crisisAnalysis.description, 'pending']
         );
         
-        console.log(`CRISIS ALERT: User ${userId} - Severity ${crisisAnalysis.severity} - ${crisisAnalysis.alertType}`);
+        logger.warn(`CRISIS ALERT: User ${userId} - Severity ${crisisAnalysis.severity} - ${crisisAnalysis.alertType}`);
       }
     }
     
@@ -362,7 +724,7 @@ app.post('/api/mood', authenticateToken, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mood entry error:', error);
+    logger.error('Mood entry error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to add mood entry'
@@ -465,7 +827,7 @@ app.get('/api/mood-stats/:userId', authenticateToken, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Mood stats error:', error);
+    logger.error('Mood stats error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch mood statistics'
@@ -508,7 +870,7 @@ app.get('/api/appointments/:userId', authenticateToken, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Appointments fetch error:', error);
+    logger.error('Appointments fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch appointments'
@@ -552,7 +914,7 @@ app.post('/api/appointments', authenticateToken, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Appointment creation error:', error);
+    logger.error('Appointment creation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create appointment'
@@ -603,13 +965,71 @@ app.put('/api/appointments/:appointmentId', authenticateToken, async (req, res) 
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Appointment update error:', error);
+    logger.error('Appointment update error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to update appointment'
     });
   }
 });
+
+// Cancel appointment - allows students to cancel their own appointments
+app.delete('/api/appointments/:appointmentId', authenticateToken, async (req, res) => {
+  try {
+    const appointmentId = req.params.appointmentId;
+    const userId = req.user.userId;
+    const userType = req.user.userType;
+
+    // Get appointment details first
+    const appointmentCheck = await pool.query(
+      'SELECT * FROM appointments WHERE id = $1',
+      [appointmentId]
+    );
+
+    if (appointmentCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Appointment not found'
+      });
+    }
+
+    const appointment = appointmentCheck.rows[0];
+
+    // Authorization: Students can cancel their own appointments, counselors/admins can cancel any
+    if (userType === 'student' && appointment.student_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'You can only cancel your own appointments'
+      });
+    }
+
+    // Update appointment status to cancelled (soft delete)
+    const result = await pool.query(
+      `UPDATE appointments
+       SET status = 'cancelled',
+           notes = COALESCE(notes, '') || ' [Cancelled by ' || $1 || ' on ' || CURRENT_TIMESTAMP || ']',
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [userType, appointmentId]
+    );
+
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Appointment cancelled successfully',
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Appointment cancellation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to cancel appointment'
+    });
+  }
+});
+
 // Crisis Analytics API Endpoints
 
 // Get active crisis alerts for counselor dashboard
@@ -659,7 +1079,7 @@ app.get('/api/crisis/alerts', authenticateToken, authorizeRoles('counselor', 'ad
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Crisis alerts fetch error:', error);
+    logger.error('Crisis alerts fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch crisis alerts'
@@ -759,7 +1179,7 @@ app.get('/api/crisis/analytics', authenticateToken, authorizeRoles('counselor', 
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Crisis analytics fetch error:', error);
+    logger.error('Crisis analytics fetch error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch crisis analytics'
@@ -889,7 +1309,7 @@ app.get('/api/admin/crisis/statistics', authenticateToken, authorizeRoles('admin
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Admin crisis statistics error:', error);
+    logger.error('Admin crisis statistics error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch admin crisis statistics'
@@ -955,7 +1375,7 @@ app.get('/api/admin/platform/statistics', authenticateToken, authorizeRoles('adm
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Platform statistics error:', error);
+    logger.error('Platform statistics error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch platform statistics'
@@ -971,26 +1391,26 @@ const userSockets = new Map(); // userId -> socketId
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
-  console.log('✓ New client connected:', socket.id);
+  logger.debug('✓ New client connected:', socket.id);
 
   // User authentication and room joining
   socket.on('authenticate', async (data) => {
-    console.log('🔐 Authenticate event received');
+    logger.debug('🔐 Authenticate event received');
     try {
       // Use verified user information from socket.user (set by middleware)
       const { userId, userType } = socket.user;
-      console.log('👤 Processing authentication for:', userId, userType);
+      logger.debug('👤 Processing authentication for:', userId, userType);
 
       // Store socket-user mapping
       socketUsers.set(socket.id, { userId, userType });
       userSockets.set(userId, socket.id);
 
-      console.log(`✅ User authenticated: ${userId} (${userType})`);
+      logger.debug(`✅ User authenticated: ${userId} (${userType})`);
 
       // If peer supporter, update their online status
       if (userType === 'peer_supporter') {
         await chatService.updatePeerSupporterStatus(userId, true, socket.id);
-        console.log(`Peer supporter ${userId} is now online`);
+        logger.debug(`Peer supporter ${userId} is now online`);
       }
 
       // Get or create active chat room
@@ -1000,7 +1420,7 @@ io.on('connection', (socket) => {
       if (!chatRoom && userType === 'student') {
         // Create waiting room
         chatRoom = await chatService.createChatRoom(userId, null, true);
-        console.log(`Created chat room ${chatRoom.id} for student ${userId}`);
+        logger.debug(`Created chat room ${chatRoom.id} for student ${userId}`);
 
         // Try to find available peer supporter
         const availablePeer = await chatService.findAvailablePeerSupporter();
@@ -1011,7 +1431,7 @@ io.on('connection', (socket) => {
           chatRoom.peer_support_id = availablePeer.id;
           chatRoom.status = 'active';
 
-          console.log(`Matched student ${userId} with peer supporter ${availablePeer.id}`);
+          logger.debug(`Matched student ${userId} with peer supporter ${availablePeer.id}`);
 
           // Notify peer supporter of new chat
           const peerSocketId = userSockets.get(availablePeer.id);
@@ -1027,11 +1447,11 @@ io.on('connection', (socket) => {
       if (chatRoom) {
         // Join socket room
         socket.join(`chat_${chatRoom.id}`);
-        console.log(`📥 User ${userId} joined chat room ${chatRoom.id}`);
+        logger.debug(`📥 User ${userId} joined chat room ${chatRoom.id}`);
 
         // Get chat history
         const history = await chatService.getChatHistory(chatRoom.id);
-        console.log(`📚 Retrieved ${history.length} messages from history`);
+        logger.debug(`📚 Retrieved ${history.length} messages from history`);
 
         const chatReadyData = {
           chatRoomId: chatRoom.id,
@@ -1046,13 +1466,13 @@ io.on('connection', (socket) => {
         };
 
         // Send chat room info and history
-        console.log(`📤 Sending chat_ready to user ${userId}:`, chatReadyData);
+        logger.debug(`📤 Sending chat_ready to user ${userId}:`, chatReadyData);
         socket.emit('chat_ready', chatReadyData);
 
         // Mark messages as read
         await chatService.markMessagesAsRead(chatRoom.id, userId);
       } else {
-        console.log(`⏳ No chat room for user ${userId}, sending waiting status`);
+        logger.debug(`⏳ No chat room for user ${userId}, sending waiting status`);
         socket.emit('chat_ready', {
           status: 'waiting',
           message: 'Waiting for available peer supporter...'
@@ -1060,8 +1480,8 @@ io.on('connection', (socket) => {
       }
 
     } catch (error) {
-      console.error('❌ Authentication error:', error);
-      console.error('Error stack:', error.stack);
+      logger.error('❌ Authentication error:', error);
+      logger.error('Error stack:', error.stack);
       socket.emit('error', { message: 'Authentication failed: ' + error.message });
     }
   });
@@ -1085,15 +1505,15 @@ io.on('connection', (socket) => {
         return;
       }
 
-      console.log(`💬 Message from user ${userId} in room ${chatRoomId}: ${message}`);
+      logger.debug(`💬 Message from user ${userId} in room ${chatRoomId}: ${message}`);
 
       // Save message to database
       const savedMessage = await chatService.saveMessage(chatRoomId, userId, message);
-      console.log(`✅ Message saved to DB with ID: ${savedMessage.id}`);
+      logger.debug(`✅ Message saved to DB with ID: ${savedMessage.id}`);
 
       // Get all sockets in this room
       const socketsInRoom = await io.in(`chat_${chatRoomId}`).fetchSockets();
-      console.log(`📢 Broadcasting to ${socketsInRoom.length} users in room`);
+      logger.debug(`📢 Broadcasting to ${socketsInRoom.length} users in room`);
 
       // Send to each socket with correct sender designation
       socketsInRoom.forEach(recipientSocket => {
@@ -1104,7 +1524,7 @@ io.on('connection', (socket) => {
           const senderUserId = Number(userId);
           const isSender = recipientUserId === senderUserId;
 
-          console.log(`  → Comparing: recipient=${recipientUserId} vs sender=${senderUserId} => isSender=${isSender}`);
+          logger.debug(`  → Comparing: recipient=${recipientUserId} vs sender=${senderUserId} => isSender=${isSender}`);
 
           recipientSocket.emit('chat_message', {
             id: savedMessage.id,
@@ -1113,12 +1533,12 @@ io.on('connection', (socket) => {
             senderId: savedMessage.sender_id,
             timestamp: savedMessage.created_at
           });
-          console.log(`  → Sent to user ${recipientUserId} as '${isSender ? 'me' : 'other'}'`);
+          logger.debug(`  → Sent to user ${recipientUserId} as '${isSender ? 'me' : 'other'}'`);
         }
       });
 
     } catch (error) {
-      console.error('Error handling chat message:', error);
+      logger.error('Error handling chat message:', error);
       socket.emit('error', { message: 'Failed to send message' });
     }
   });
@@ -1138,10 +1558,10 @@ io.on('connection', (socket) => {
         message: 'Chat session has ended'
       });
 
-      console.log(`Chat room ${chatRoomId} closed`);
+      logger.debug(`Chat room ${chatRoomId} closed`);
 
     } catch (error) {
-      console.error('Error closing chat:', error);
+      logger.error('Error closing chat:', error);
     }
   });
 
@@ -1166,19 +1586,19 @@ io.on('connection', (socket) => {
     if (userInfo) {
       const { userId, userType } = userInfo;
 
-      console.log(`✗ User ${userId} disconnected: ${reason}`);
+      logger.debug(`✗ User ${userId} disconnected: ${reason}`);
 
       // If peer supporter, update their status to offline
       if (userType === 'peer_supporter') {
         await chatService.updatePeerSupporterStatus(userId, false, null);
-        console.log(`Peer supporter ${userId} is now offline`);
+        logger.debug(`Peer supporter ${userId} is now offline`);
       }
 
       // Clean up mappings
       socketUsers.delete(socket.id);
       userSockets.delete(userId);
     } else {
-      console.log('✗ Client disconnected:', socket.id, '| Reason:', reason);
+      logger.debug('✗ Client disconnected:', socket.id, '| Reason:', reason);
     }
   });
 
@@ -1192,7 +1612,7 @@ io.on('connection', (socket) => {
 
 // Start the server (use 'server' instead of 'app' for Socket.io support)
 server.listen(PORT, () => {
-  console.log(`MindBridge server is running on port ${PORT}`);
-  console.log(`Visit http://localhost:${PORT} to see the welcome message`);
-  console.log(`Socket.io server is ready for real-time connections`);
+  logger.debug(`MindBridge server is running on port ${PORT}`);
+  logger.debug(`Visit http://localhost:${PORT} to see the welcome message`);
+  logger.debug(`Socket.io server is ready for real-time connections`);
 });
